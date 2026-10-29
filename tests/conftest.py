@@ -5,8 +5,9 @@ Module: CYS22301 Software and Platform Security (Level 6)
 """
 
 import pytest
+
 from accounts.models import CustomUser, UserRole
-from cases.models import Case, CaseMembership, CaseClassification, CaseStatus
+from cases.models import Case, CaseClassification, CaseMembership, CaseStatus
 
 
 @pytest.fixture
@@ -103,3 +104,4 @@ def case_beta(db, lead_investigator):
         lead_investigator=lead_investigator
     )
     return case
+

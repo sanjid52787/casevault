@@ -5,7 +5,8 @@ Module: CYS22301 Software and Platform Security (Level 6)
 """
 
 import pytest
-from audit.models import AuditLog, AuditAction, GENESIS_HASH
+
+from audit.models import GENESIS_HASH, AuditAction, AuditLog
 from audit.service import log_security_event, verify_audit_chain
 
 
@@ -76,3 +77,4 @@ def test_audit_hash_chaining_and_tamper_detection(lead_investigator):
     assert is_valid is False
     assert failed_id == e3.id
     assert "previous_hash mismatch" in msg.lower()
+

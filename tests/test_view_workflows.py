@@ -4,13 +4,13 @@ Organization: Northbridge Cyber Response
 Module: CYS22301 Software and Platform Security (Level 6)
 """
 
-import pytest
 import pyotp
-from django.urls import reverse
+import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
+
 from accounts.models import CustomUser, UserRole
-from cases.models import Case, CaseStatus, CaseClassification
-from audit.models import AuditLog, AuditAction
+from cases.models import Case, CaseClassification
 
 
 @pytest.mark.django_db
@@ -151,3 +151,4 @@ def test_audit_log_view_and_verification_workflow(client, admin_user):
     assert res.status_code == 200
     assert 'verification_result' in res.context
     assert res.context['verification_result']['is_valid'] is True
+

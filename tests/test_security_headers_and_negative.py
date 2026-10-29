@@ -6,6 +6,7 @@ Module: CYS22301 Software and Platform Security (Level 6)
 
 import pytest
 from django.urls import reverse
+
 from accounts.models import CustomUser, UserRole
 
 
@@ -74,3 +75,4 @@ def test_csrf_protection_enforcement(client):
     csrf_client = client.__class__(enforce_csrf_checks=True)
     response = csrf_client.post(reverse('login'), {'username': 'attacker', 'password': 'foo'})
     assert response.status_code == 403, "Requests lacking valid CSRF token must be rejected"
+

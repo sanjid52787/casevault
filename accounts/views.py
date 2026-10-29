@@ -3,29 +3,36 @@ CaseVault Authentication Views
 Organization: Northbridge Cyber Response
 Module: CYS22301 Software and Platform Security (Level 6)
 
-Handles login, session elevation with RFC 6238 TOTP MFA,
-TOTP onboarding, and audit logging for identity events.
+Handles login, session elevation with RFC 6238 TOTP MFA via django-otp,
+TOTP onboarding, and audit logging for identity events (ADR-0001, ADR-0006).
 """
 
 import io
-import base64
+
 import qrcode
 import qrcode.image.svg
-from django.shortcuts import render, redirect
-from django.contrib.auth import login as auth_login, logout as auth_logout
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth import login as auth_login
+from django.contrib.auth import logout as auth_logout
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
+from django_otp import login as otp_login
+from django_otp.plugins.otp_totp.models import TOTPDevice
+from django_ratelimit.decorators import ratelimit
+
+from accounts.forms import LoginForm, MFASetupForm, MFAVerifyForm
 from accounts.models import CustomUser
-from accounts.forms import LoginForm, MFAVerifyForm, MFASetupForm
-from audit.service import log_security_event
 from audit.models import AuditAction
+from audit.service import log_security_event
 
 
+@ratelimit(key='ip', rate='15/m', block=True)
 @require_http_methods(["GET", "POST"])
 def login_view(request):
     """
     Step 1 of authentication: verifies username and Argon2id password hash.
+    Protected by django-axes for account lockout and django-ratelimit.
     If MFA is enabled for the account, the session is kept unverified and
     redirected to the TOTP challenge step.
     """
@@ -33,7 +40,7 @@ def login_view(request):
         return redirect('case_list')
 
     if request.method == 'POST':
-        form = LoginForm(request.POST)
+        form = LoginForm(request.POST, request=request)
         if form.is_valid():
             user = form.cleaned_data['user']
             user.reset_failed_logins()
@@ -78,10 +85,11 @@ def login_view(request):
     return render(request, 'accounts/login.html', {'form': form})
 
 
+@ratelimit(key='ip', rate='15/m', block=True)
 @require_http_methods(["GET", "POST"])
 def mfa_verify_view(request):
     """
-    Step 2 of authentication: verifies RFC 6238 TOTP token.
+    Step 2 of authentication: verifies RFC 6238 TOTP token using django-otp.
     Grants elevated session rights upon successful verification.
     """
     mfa_user_id = request.session.get('mfa_user_id')
@@ -103,10 +111,24 @@ def mfa_verify_view(request):
         form = MFAVerifyForm(request.POST)
         if form.is_valid():
             token = form.cleaned_data['token']
-            if user.verify_totp(token):
+            device = TOTPDevice.objects.filter(user=user, confirmed=True).first()
+            is_valid_token = False
+
+            if device and device.verify_token(token):
+                is_valid_token = True
+                otp_login(request, device)
+            elif user.verify_totp(token):
+                is_valid_token = True
+                # Ensure a confirmed django-otp TOTPDevice exists
+                dev, _ = TOTPDevice.objects.get_or_create(user=user, name='default')
+                dev.confirmed = True
+                dev.save()
+                otp_login(request, dev)
+
+            if is_valid_token:
                 if not request.user.is_authenticated:
-                    auth_login(request, user)
-                
+                    auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+
                 request.session['mfa_verified'] = True
                 request.session.pop('mfa_user_id', None)
 
@@ -114,7 +136,7 @@ def mfa_verify_view(request):
                     action=AuditAction.MFA_VERIFIED,
                     actor=user,
                     request=request,
-                    details={'result': 'success'}
+                    details={'result': 'success', 'engine': 'django_otp'}
                 )
                 messages.success(request, f"Welcome back, {user.get_full_name() or user.username}. Session verified.")
                 next_url = request.GET.get('next')
@@ -138,18 +160,24 @@ def mfa_verify_view(request):
 @require_http_methods(["GET", "POST"])
 def mfa_setup_view(request):
     """
-    Enrolls user into TOTP Multi-Factor Authentication.
+    Enrolls user into TOTP Multi-Factor Authentication via django-otp.
     Generates a secure Base32 secret and an inline SVG QR code.
     """
     user = request.user
     if not user.totp_secret:
         user.generate_totp_secret()
 
+    device, _ = TOTPDevice.objects.get_or_create(user=user, name='default', defaults={'confirmed': False})
+
     if request.method == 'POST':
         form = MFASetupForm(request.POST)
         if form.is_valid():
             token = form.cleaned_data['token']
-            if user.verify_totp(token):
+            if device.verify_token(token) or user.verify_totp(token):
+                device.confirmed = True
+                device.save()
+                otp_login(request, device)
+
                 user.is_mfa_enabled = True
                 user.save(update_fields=['is_mfa_enabled'])
                 request.session['mfa_verified'] = True
@@ -157,7 +185,7 @@ def mfa_setup_view(request):
                     action=AuditAction.MFA_SETUP,
                     actor=user,
                     request=request,
-                    details={'status': 'enabled'}
+                    details={'status': 'enabled', 'engine': 'django_otp'}
                 )
                 messages.success(request, "Multi-Factor Authentication has been successfully activated for your account.")
                 return redirect('case_list')

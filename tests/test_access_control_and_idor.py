@@ -6,6 +6,7 @@ Module: CYS22301 Software and Platform Security (Level 6)
 
 import pytest
 from django.urls import reverse
+
 from cases.models import Case, CaseNote
 
 
@@ -121,3 +122,4 @@ def test_case_notes_client_visibility_filtering(client, investigator, client_aud
     assert "Client briefing: gateway port isolated" in content
     # MUST NOT contain internal confidential note
     assert "Internal: suspected zero-day vulnerability" not in content
+

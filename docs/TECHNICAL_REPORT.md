@@ -154,3 +154,4 @@ Where $H_{i-1}$ is the digest of the prior entry ($H_0 = 0^{64}$). `verify_audit
 ## 8. Conclusion
 
 CaseVault demonstrates that rigorous software and platform security principles can be achieved using idiomatic framework features, disciplined cryptography, and automated assurance. Through memory-hard authentication, dual-layer tenancy scoping, authenticated evidence encryption, and a mathematically verifiable audit trail, CaseVault provides Northbridge Cyber Response with an uncompromising, legally defensible DFIR platform.
+

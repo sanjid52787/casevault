@@ -7,18 +7,20 @@ Implements case listing, creation, detail inspection, investigator assignment,
 and note appending with strict server-side RBAC and ABAC authorization (ADR-0002).
 """
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
+from django_ratelimit.decorators import ratelimit
+
 from accounts.models import CustomUser, UserRole
-from cases.models import Case, CaseMembership, CaseNote, CaseClassification, CaseStatus
-from audit.service import log_security_event
 from audit.models import AuditAction
+from audit.service import log_security_event
+from cases.models import Case, CaseClassification, CaseMembership, CaseNote, CaseStatus
 
 
 @login_required
+@ratelimit(key='ip', rate='30/m', block=True)
 @require_http_methods(["GET"])
 def case_list_view(request):
     """

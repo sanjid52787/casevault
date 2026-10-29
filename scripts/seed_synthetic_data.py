@@ -10,8 +10,9 @@ No real client information, no malware, no dangerous payloads.
 
 import os
 import sys
-import django
 from pathlib import Path
+
+import django
 
 # Setup Django standalone environment
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,15 +21,17 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'casevault_core.settings')
 django.setup()
 
 import uuid
+
+from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+
 from accounts.models import CustomUser, UserRole
-from cases.models import Case, CaseMembership, CaseNote, CaseClassification, CaseStatus
+from audit.models import AuditAction
+from audit.service import log_security_event
+from cases.models import Case, CaseClassification, CaseMembership, CaseNote, CaseStatus
+from vault.crypto import encrypt_and_store_evidence
 from vault.models import EvidenceItem
 from vault.validators import validate_inert_evidence_file
-from vault.crypto import encrypt_and_store_evidence
-from audit.service import log_security_event
-from audit.models import AuditAction
-from django.conf import settings
 
 
 def create_sample_png() -> bytes:
@@ -211,10 +214,10 @@ def seed():
 
     # Evidence for Case 1
     log_sample = (
-        "2026-10-30T01:00:12Z BASTION-01 sshd[4912]: Accepted publickey for ir_analyst from 192.168.1.50\n"
-        "2026-10-30T01:02:44Z BASTION-01 sudo: pam_unix(sudo:session): session opened for user root\n"
-        "2026-10-30T01:05:10Z BASTION-01 kernel: [ 4102.12] nftables: SYN scan drop from 10.0.0.99\n"
-    ).encode('utf-8')
+        b"2026-10-30T01:00:12Z BASTION-01 sshd[4912]: Accepted publickey for ir_analyst from 192.168.1.50\n"
+        b"2026-10-30T01:02:44Z BASTION-01 sudo: pam_unix(sudo:session): session opened for user root\n"
+        b"2026-10-30T01:05:10Z BASTION-01 kernel: [ 4102.12] nftables: SYN scan drop from 10.0.0.99\n"
+    )
     ingest_synthetic_evidence(case1, bob, 'firewall_bastion.log', log_sample, 'Simulated firewall and syslog journal')
 
     png_sample = create_sample_png()

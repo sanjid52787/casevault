@@ -7,6 +7,7 @@ Module: CYS22301 Software and Platform Security (Level 6)
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
+
 from accounts.models import CustomUser
 
 
@@ -29,6 +30,10 @@ class LoginForm(forms.Form):
         })
     )
 
+    def __init__(self, *args, request=None, **kwargs):
+        self.request = request
+        super().__init__(*args, **kwargs)
+
     def clean(self):
         cleaned_data = super().clean()
         username = cleaned_data.get('username')
@@ -46,12 +51,12 @@ class LoginForm(forms.Form):
                     "Please wait 15 minutes before retrying or contact the administrator."
                 )
 
-            auth_user = authenticate(username=username, password=password)
+            auth_user = authenticate(request=self.request, username=username, password=password)
             if auth_user is None:
                 if user:
                     user.record_failed_login()
                 raise ValidationError("Invalid username or password.")
-            
+
             cleaned_data['user'] = auth_user
         return cleaned_data
 
@@ -86,3 +91,4 @@ class MFASetupForm(forms.Form):
         }),
         help_text="Verify your authenticator app by entering the generated 6-digit code."
     )
+

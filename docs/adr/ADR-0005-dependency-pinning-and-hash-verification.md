@@ -20,3 +20,4 @@ We enforce strict cryptographic dependency pinning:
 
 ### Negative / Trade-offs
 - Updating dependencies requires regenerating and verifying cryptographic hashes across all wheel architectures.
+

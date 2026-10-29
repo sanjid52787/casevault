@@ -7,11 +7,12 @@ Implements defense-in-depth HTTP security headers, dynamic CSP nonce generation,
 strict MFA enforcement for authenticated sessions, and client IP extraction.
 """
 
-import secrets
 import logging
+import secrets
+
 from django.conf import settings
 from django.shortcuts import redirect
-from django.urls import resolve, Resolver404
+from django.urls import Resolver404, resolve
 
 logger = logging.getLogger('casevault.security')
 
@@ -141,3 +142,4 @@ class SensitiveDataLoggingFilter(logging.Filter):
                 record.msg = f"[REDACTED LOG ENTRY CONTAINING '{kw.upper()}']"
                 break
         return True
+

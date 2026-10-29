@@ -5,8 +5,9 @@ Module: CYS22301 Software and Platform Security (Level 6)
 """
 
 from django.contrib import admin
-from django.urls import path, include
 from django.shortcuts import redirect
+from django.urls import include, path
+
 
 def root_redirect(request):
     if request.user.is_authenticated:

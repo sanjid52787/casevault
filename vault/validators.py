@@ -3,14 +3,43 @@ CaseVault Safe File Handling & MIME Magic Byte Inspection
 Organization: Northbridge Cyber Response
 Module: CYS22301 Software and Platform Security (Level 6)
 
-Implements strict extension whitelisting, filename sanitization,
-magic byte signature verification, and executable rejection (ADR-0004).
+Implements strict extension whitelisting, python-magic content sniffing,
+and binary executable rejection (ADR-0004, ADR-0006).
 """
 
-import re
+import logging
 import os
-from typing import Tuple
+import re
+import sys
+from pathlib import Path
+
 from django.core.exceptions import ValidationError
+
+logger = logging.getLogger('casevault.vault')
+
+# Initialize python-magic on Windows if running with python-magic-bin
+if sys.platform == 'win32':
+    try:
+        import site
+        for sp in site.getsitepackages():
+            dll_p = Path(sp) / 'magic' / 'libmagic'
+            if dll_p.exists():
+                os.add_dll_directory(str(dll_p))
+                os.environ['PATH'] = str(dll_p) + ';' + os.environ.get('PATH', '')
+        import magic.loader
+        orig_loader = magic.loader._lib_candidates
+        dll_file = dll_p / 'libmagic.dll'
+        if dll_file.exists():
+            magic.loader._lib_candidates = lambda: (str(dll_file), *orig_loader())
+    except (ImportError, OSError, AttributeError) as exc:
+        logger.debug("Windows libmagic DLL initialization fallback: %s", exc)
+
+try:
+    import magic
+    HAS_MAGIC = True
+except (ImportError, OSError) as exc:
+    HAS_MAGIC = False
+    logger.debug("python-magic library unavailable, falling back to signature inspection: %s", exc)
 
 # Strict extension whitelist for forensic artifacts (executable extensions prohibited)
 ALLOWED_EXTENSIONS = {
@@ -55,39 +84,30 @@ def sanitize_filename(filename: str) -> str:
     Sanitizes user-provided filenames to prevent directory traversal and injection.
     Strips directory separators, removes non-alphanumeric characters except safe symbols.
     """
-    # 1. Normalize directory separators and extract basename
     normalized = filename.replace('\\', '/')
     basename = os.path.basename(normalized).strip()
-    
-    # 2. Split extension and root
     root, ext = os.path.splitext(basename)
-    
-    # 3. Sanitize root to safe characters
     sanitized_root = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', root)
-    # Collapse multiple consecutive underscores
     sanitized_root = re.sub(r'_+', '_', sanitized_root).strip('_')
-    
+
     if not sanitized_root:
         sanitized_root = "evidence_artifact"
 
-    # Truncate to maximum 100 characters to prevent filesystem errors
     sanitized_root = sanitized_root[:100]
-    clean_ext = ext.lower()
-    
-    return f"{sanitized_root}{clean_ext}"
+    return f"{sanitized_root}{ext.lower()}"
 
 
-def validate_inert_evidence_file(uploaded_file) -> Tuple[str, str]:
+def validate_inert_evidence_file(uploaded_file) -> tuple[str, str]:
     """
     Validates uploaded evidence file:
     1. Checks file size against maximum limit.
     2. Validates filename and whitelisted extension.
-    3. Reads header bytes to inspect magic signatures.
+    3. Reads header bytes to inspect magic signatures and python-magic sniffing.
     4. Prohibits executable markers, scripts, and SVG vectors.
 
     Returns:
         (sanitized_filename: str, validated_mime: str)
-    
+
     Raises:
         ValidationError: if the file violates any security rule.
     """
@@ -130,6 +150,19 @@ def validate_inert_evidence_file(uploaded_file) -> Tuple[str, str]:
                 f"File content mismatch: the uploaded file does not contain valid {expected_mime} magic bytes."
             )
 
+    # Content sniffing via python-magic when available
+    if HAS_MAGIC:
+        try:
+            detected_mime = magic.from_buffer(header, mime=True)
+            if expected_mime == 'application/pdf' and 'pdf' not in detected_mime:
+                raise ValidationError("python-magic content sniffing: file is not a valid PDF.")
+            if expected_mime in ('image/png', 'image/jpeg') and not detected_mime.startswith('image/'):
+                raise ValidationError(f"python-magic content sniffing: expected image, detected {detected_mime}.")
+        except ValidationError:
+            raise
+        except Exception as exc:
+            logger.debug("python-magic content sniffing skipped due to non-fatal error: %s", exc)
+
     # For text-based formats (.txt, .log, .json, .csv), ensure valid UTF-8/ASCII without null bytes
     if expected_mime in ('text/plain', 'application/json', 'text/csv'):
         if b'\x00' in header:
@@ -137,6 +170,6 @@ def validate_inert_evidence_file(uploaded_file) -> Tuple[str, str]:
         try:
             header.decode('utf-8')
         except UnicodeDecodeError:
-            raise ValidationError("Text evidence must be valid UTF-8 encoded text.")
+            raise ValidationError("Text evidence must be valid UTF-8 encoded text.") from None
 
     return sanitized, expected_mime

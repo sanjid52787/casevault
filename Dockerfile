@@ -2,6 +2,7 @@
 # CaseVault Multi-Stage Hardened Dockerfile
 # Organization: Northbridge Cyber Response
 # Module: CYS22301 Software and Platform Security (Level 6)
+# Standard: ADR-0006 Standardized Technology Decisions
 # ==============================================================================
 
 # Stage 1: Build Dependencies & Wheels
@@ -13,6 +14,7 @@ WORKDIR /build
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libffi-dev \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.lock /build/
@@ -30,12 +32,14 @@ LABEL org.opencontainers.image.title="CaseVault Incident Response Platform" \
       org.opencontainers.image.vendor="Northbridge Cyber Response" \
       org.opencontainers.image.licenses="BSD-3-Clause"
 
-# Install curl for container healthcheck
+# Install curl for healthcheck and libmagic1 for forensic MIME sniffing
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    libmagic1 \
+    libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
-# Hard Rule: Create dedicated unprivileged non-root user and group
+# Hard Rule: Create dedicated unprivileged non-root user and group (UID/GID 10001)
 RUN groupadd -g 10001 casevault && \
     useradd -u 10001 -g casevault -s /bin/false -M casevault
 
@@ -68,5 +72,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8000/auth/login/ || exit 1
 
-# Production Entrypoint
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Production Entrypoint: Gunicorn WSGI Server behind Nginx Reverse Proxy
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60", "casevault_core.wsgi:application"]

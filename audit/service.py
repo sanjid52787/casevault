@@ -9,11 +9,12 @@ and verification of full audit trail integrity.
 
 import json
 import logging
-from typing import Tuple, Optional
+
 from django.conf import settings
 from django.db import transaction
+
+from audit.models import GENESIS_HASH, AuditLog
 from core.utils import get_client_ip
-from audit.models import AuditLog, GENESIS_HASH
 
 logger = logging.getLogger('casevault.audit')
 
@@ -32,7 +33,7 @@ def log_security_event(
     request=None,
     target_model: str = '',
     target_id: str = '',
-    details: Optional[dict] = None
+    details: dict | None = None
 ) -> AuditLog:
     """
     Atomically appends a new audit record to the cryptographic chain.
@@ -76,7 +77,7 @@ def log_security_event(
             details=details_clean,
             previous_hash=previous_hash,
         )
-        
+
         # Calculate current hash over canonical fields
         entry.current_hash = AuditLog.calculate_entry_hmac(
             key=hmac_key,
@@ -93,7 +94,7 @@ def log_security_event(
     return entry
 
 
-def verify_audit_chain() -> Tuple[bool, int, str]:
+def verify_audit_chain() -> tuple[bool, int, str]:
     """
     Traverses the entire audit log from genesis to head, recalculating
     and verifying each HMAC digest.
@@ -108,7 +109,7 @@ def verify_audit_chain() -> Tuple[bool, int, str]:
     hmac_key = get_audit_hmac_key()
     expected_previous_hash = GENESIS_HASH
 
-    for index, entry in enumerate(entries):
+    for _index, entry in enumerate(entries):
         # 1. Verify link to previous entry
         if entry.previous_hash != expected_previous_hash:
             msg = (
@@ -143,3 +144,4 @@ def verify_audit_chain() -> Tuple[bool, int, str]:
         expected_previous_hash = entry.current_hash
 
     return True, len(entries), f"Cryptographic audit chain verified: {len(entries)} records intact."
+

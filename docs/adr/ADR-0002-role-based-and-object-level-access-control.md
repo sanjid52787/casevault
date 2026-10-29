@@ -30,3 +30,4 @@ We enforce a **dual-layer server-side authorization architecture**:
 ### Negative / Trade-offs
 - Developers must never write raw `Case.objects.get(id=id)` without user context filtering.
 - Code requires thorough automated authorization regression tests for every route and user role.
+

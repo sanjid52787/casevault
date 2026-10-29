@@ -3,6 +3,7 @@ Django Admin Configuration for Evidence Vault
 """
 
 from django.contrib import admin
+
 from vault.models import EvidenceItem
 
 

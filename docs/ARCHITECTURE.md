@@ -138,3 +138,4 @@ To satisfy the non-repudiation and accountability requirements for digital foren
   Fernet implements AES-128-CBC with PKCS7 padding and HMAC-SHA256 authentication, signed with timestamping and IV randomness. It prevents ciphertext tampering, bit-flipping attacks, and key misuse through a standardized, verified Python implementation without requiring custom crypto design.
 - **Why UUIDs over auto-incrementing integers?**  
   Sequential integers reveal business metrics (how many cases exist) and facilitate automated enumeration attacks (IDOR scanning). UUIDv4 provides 122 bits of cryptographically secure entropy, making ID guessing statistically impossible.
+

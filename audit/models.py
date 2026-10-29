@@ -9,13 +9,12 @@ guaranteeing forensic non-repudiation and immediate detection of
 log manipulation, record deletion, or unauthorized insertion.
 """
 
-import hmac
 import hashlib
-import json
-from django.db import models, transaction
-from django.conf import settings
-from django.utils import timezone
+import hmac
 
+from django.conf import settings
+from django.db import models
+from django.utils import timezone
 
 GENESIS_HASH = "0000000000000000000000000000000000000000000000000000000000000000"
 
@@ -70,7 +69,7 @@ class AuditLog(models.Model):
     target_model = models.CharField(max_length=64, blank=True)
     target_id = models.CharField(max_length=64, blank=True)
     details = models.JSONField(default=dict, blank=True)
-    
+
     # Cryptographic Chain Hashes
     previous_hash = models.CharField(max_length=64, help_text="HMAC digest of the preceding audit record")
     current_hash = models.CharField(max_length=64, help_text="HMAC digest of this record binding to previous_hash")

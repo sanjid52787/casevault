@@ -3,6 +3,7 @@ CaseVault Authentication URL Configuration
 """
 
 from django.urls import path
+
 from accounts import views
 
 urlpatterns = [
@@ -11,3 +12,4 @@ urlpatterns = [
     path('mfa/verify/', views.mfa_verify_view, name='mfa_verify'),
     path('mfa/setup/', views.mfa_setup_view, name='mfa_setup'),
 ]
+

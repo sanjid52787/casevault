@@ -7,15 +7,18 @@ Provides administrative inspection and live cryptographic verification
 of the tamper-evident HMAC hash chain (ADR-0003).
 """
 
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
-from audit.models import AuditLog, AuditAction
-from audit.service import verify_audit_chain, log_security_event
+from django_ratelimit.decorators import ratelimit
+
+from audit.models import AuditAction, AuditLog
+from audit.service import log_security_event, verify_audit_chain
 
 
 @login_required
+@ratelimit(key='ip', rate='10/m', block=True)
 @require_http_methods(["GET", "POST"])
 def audit_log_view(request):
     """

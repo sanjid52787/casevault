@@ -1,0 +1,39 @@
+rules:
+  - id: django-raw-sql-injection
+    patterns:
+      - pattern-either:
+          - pattern: $MODEL.objects.raw(...)
+          - pattern: $CURSOR.execute(...)
+    message: "Potential SQL injection detected. Use Django ORM parameterized queries."
+    languages: [python]
+    severity: ERROR
+
+  - id: django-csrf-exempt-prohibited
+    pattern: "@csrf_exempt"
+    message: "Use of @csrf_exempt is prohibited in CaseVault. All mutating requests must validate CSRF tokens."
+    languages: [python]
+    severity: ERROR
+
+  - id: python-weak-cryptography-md5-sha1
+    patterns:
+      - pattern-either:
+          - pattern: hashlib.md5(...)
+          - pattern: hashlib.sha1(...)
+    message: "Weak hash algorithm (MD5/SHA-1) detected. Use SHA-256 or SHA-512 per ADR-0003."
+    languages: [python]
+    severity: WARNING
+
+  - id: django-mark-safe-xss
+    patterns:
+      - pattern-either:
+          - pattern: mark_safe(...)
+          - pattern: django.utils.safestring.mark_safe(...)
+    message: "mark_safe bypasses Django's auto-escaping and can introduce XSS vulnerabilities."
+    languages: [python]
+    severity: ERROR
+
+  - id: python-hardcoded-fernet-key
+    pattern: Fernet("...")
+    message: "Hardcoded Fernet key detected. Cryptographic keys must be loaded from environment variables."
+    languages: [python]
+    severity: ERROR

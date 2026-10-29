@@ -29,3 +29,4 @@ Furthermore, audit logs are prime targets for malicious insiders or compromised 
 ### Negative / Trade-offs
 - Key management is critical: losing `CASEVAULT_EVIDENCE_KEY` renders stored evidence unrecoverable.
 - Audit verification requires sequential row evaluation across the ledger.
+

@@ -9,8 +9,10 @@ isolated storage filenames, and association to Incident Cases (ADR-0003, ADR-000
 
 import uuid
 from pathlib import Path
-from django.db import models
+
 from django.conf import settings
+from django.db import models
+
 from cases.models import Case
 
 
@@ -47,7 +49,7 @@ class EvidenceItem(models.Model):
         max_length=128,
         help_text="Validated MIME media type"
     )
-    
+
     # Pre-encryption cryptographic hashes for forensic integrity verification
     sha256_hash = models.CharField(
         max_length=64,

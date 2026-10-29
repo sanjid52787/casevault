@@ -8,10 +8,11 @@ brute-force account lockout tracking, and RFC 6238 TOTP Multi-Factor Authenticat
 """
 
 import uuid
-import pyotp
 from datetime import timedelta
-from django.db import models
+
+import pyotp
 from django.contrib.auth.models import AbstractUser
+from django.db import models
 from django.utils import timezone
 
 
@@ -42,7 +43,7 @@ class CustomUser(AbstractUser):
         default='Northbridge Cyber Response',
         help_text="Organization name used for multi-tenant isolation of client auditors"
     )
-    
+
     # Multi-Factor Authentication fields (RFC 6238)
     is_mfa_enabled = models.BooleanField(
         default=False,

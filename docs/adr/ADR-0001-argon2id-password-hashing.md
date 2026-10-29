@@ -27,3 +27,4 @@ Configuration parameters:
 ### Negative / Trade-offs
 - Increased server memory consumption during authentication bursts (mitigated via IP/account rate-limiting).
 - Requires native C extension (`argon2-cffi`), requiring compiled wheels or build tools in deployment containers.
+

@@ -3,6 +3,7 @@ CaseVault Case Management URLs
 """
 
 from django.urls import path
+
 from cases import views
 
 urlpatterns = [
@@ -12,3 +13,4 @@ urlpatterns = [
     path('<uuid:case_id>/notes/add/', views.case_add_note_view, name='case_add_note'),
     path('<uuid:case_id>/members/add/', views.case_add_member_view, name='case_add_member'),
 ]
+

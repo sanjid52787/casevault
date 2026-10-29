@@ -50,3 +50,4 @@ Given the extreme confidentiality and evidential integrity required in judicial 
 - **SR-AVAIL-01 (Denial-of-Service Defense):** File upload size limits (e.g. 25 MB max per artifact) and request payload limits must be enforced server-side.
 - **SR-AVAIL-02 (Resource Isolation):** Heavy operations (hash computation, encryption) must be bounded in memory using streaming buffers (chunk size: 64 KiB) to prevent memory exhaustion attacks.
 - **SR-AVAIL-03 (Graceful Error Handling):** All exceptions must produce sanitized, non-revealing error pages. Raw stack traces, SQL queries, or internal file paths must never be exposed to users.
+

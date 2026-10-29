@@ -30,3 +30,4 @@ We implement a multi-layered safe file handling pipeline:
 ### Negative / Trade-offs
 - File uploads incur validation overhead and streaming encryption.
 - Some niche binary formats require addition to whitelist if needed by IR teams.
+

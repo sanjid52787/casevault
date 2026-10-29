@@ -8,9 +8,9 @@ RBAC and ABAC (Object-Level Access Control) to eliminate IDOR vulnerabilities (A
 """
 
 import uuid
-from django.db import models
+
 from django.conf import settings
-from accounts.models import UserRole
+from django.db import models
 
 
 class CaseClassification(models.TextChoices):

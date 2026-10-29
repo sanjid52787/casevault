@@ -8,23 +8,26 @@ pre-storage dual hashing, safe file inspection, and sandboxed downloads (ADR-000
 """
 
 import uuid
-from pathlib import Path
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, Http404
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.views.decorators.http import require_http_methods
+
 from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_http_methods
+from django_ratelimit.decorators import ratelimit
+
+from audit.models import AuditAction
+from audit.service import log_security_event
 from cases.models import Case
+from vault.crypto import decrypt_and_verify_evidence, encrypt_and_store_evidence
 from vault.models import EvidenceItem
 from vault.validators import validate_inert_evidence_file
-from vault.crypto import encrypt_and_store_evidence, decrypt_and_verify_evidence
-from audit.service import log_security_event
-from audit.models import AuditAction
 
 
 @login_required
+@ratelimit(key='ip', rate='10/m', block=True)
 @require_http_methods(["GET", "POST"])
 def evidence_upload_view(request, case_id):
     """
@@ -163,7 +166,7 @@ def evidence_download_view(request, case_id, evidence_id):
     response = HttpResponse(plaintext_bytes, content_type='application/octet-stream')
     response['Content-Disposition'] = f'attachment; filename="{evidence.original_filename}"'
     response['Content-Length'] = len(plaintext_bytes)
-    
+
     # Sandboxed CSP prevents browser from executing payload even if user opens in tab
     response['Content-Security-Policy'] = "sandbox; default-src 'none';"
     response['X-Content-Type-Options'] = 'nosniff'

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Account Locked — CaseVault{% endblock %}
+
+{% block content %}
+<div style="max-width: 500px; margin: 3rem auto;">
+    <div class="card" style="border-color: var(--danger); background-color: var(--danger-bg);">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">🚫</div>
+            <h1 class="card-title" style="color: #fca5a5; font-size: 1.5rem;">Access Denied: Account Locked</h1>
+            <p style="color: #fecaca; font-size: 0.9rem; margin-top: 0.5rem;">
+                Too many consecutive failed login attempts have been detected by <code>django-axes</code>.
+            </p>
+        </div>
+
+        <div style="background-color: rgba(0, 0, 0, 0.4); padding: 1rem; border-radius: 6px; font-size: 0.85rem; color: #fecaca; margin-bottom: 1.5rem;">
+            <p><strong>Security Policy Enforcement:</strong></p>
+            <p>This account and IP address have been temporarily locked out to prevent brute-force credential stuffing.</p>
+            <p style="margin-top: 0.5rem;">Cool-off period: <strong>15 minutes</strong>. Please wait before attempting to sign in again or contact a Northbridge Cyber Response administrator.</p>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="{% url 'login' %}" class="btn btn-secondary">
+                Return to Login Page
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

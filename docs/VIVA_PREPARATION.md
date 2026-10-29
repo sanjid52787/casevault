@@ -142,3 +142,4 @@
    - Navigate to `/audit/`. Click **"Verify Cryptographic Hash Chain"**.
    - Show the green **"Audit Chain Integrity Verified"** alert.
    - Explain the `previous_hash` $\to$ `current_hash` HMAC link in the table.
+

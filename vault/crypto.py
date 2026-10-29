@@ -11,8 +11,8 @@ and pre-encryption cryptographic dual-hashing (SHA-256 and SHA-512) (ADR-0003).
 import hashlib
 import logging
 from pathlib import Path
-from typing import Tuple
-from cryptography.fernet import Fernet, InvalidToken
+
+from cryptography.fernet import Fernet
 from django.conf import settings
 
 logger = logging.getLogger('casevault.crypto')
@@ -32,7 +32,7 @@ def get_fernet_cipher() -> Fernet:
     return Fernet(key)
 
 
-def encrypt_and_store_evidence(uploaded_file, destination_path: Path) -> Tuple[str, str, int]:
+def encrypt_and_store_evidence(uploaded_file, destination_path: Path) -> tuple[str, str, int]:
     """
     Processes an uploaded evidence file:
     1. Computes pre-encryption SHA-256 and SHA-512 hashes.
@@ -100,3 +100,4 @@ def decrypt_and_verify_evidence(storage_path: Path, expected_sha256: str) -> byt
         raise ValueError(msg)
 
     return plaintext
+

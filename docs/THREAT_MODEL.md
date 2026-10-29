@@ -165,3 +165,4 @@ flowchart TD
 | **AC-04** | Evidence Tampering Detection | Adversary modifies one byte of encrypted file on disk. | Fernet authenticated decryption detects HMAC signature failure (`InvalidToken`); download view logs tampering event and halts. | `test_tampered_evidence_file_raises_integrity_error()` |
 | **AC-05** | Audit Log Deletion Tampering | Adversary deletes an intermediate row in the audit database. | System audit integrity check runs: `verify_audit_chain()` computes chain mismatch at deleted index; returns `is_valid = False` with exact corrupted index. | `test_audit_chain_detects_deleted_record()` |
 | **AC-06** | Mass Assignment Escalation | Investigator submits `POST /profile/update/` with form body containing `role=ADMIN`. | Django form whitelist ignores unexpected `role` attribute; user role remains unchanged. | `test_role_mass_assignment_prevented()` |
+

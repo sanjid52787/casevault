@@ -4,21 +4,16 @@ Organization: Northbridge Cyber Response
 Module: CYS22301 Software and Platform Security (Level 6)
 """
 
-import uuid
 import pytest
-from pathlib import Path
-from django.urls import reverse
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.exceptions import ValidationError
-from django.conf import settings
 from cryptography.fernet import InvalidToken
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
+
+from vault.crypto import decrypt_and_verify_evidence, encrypt_and_store_evidence
 from vault.models import EvidenceItem
-from vault.validators import validate_inert_evidence_file, sanitize_filename
-from vault.crypto import (
-    encrypt_and_store_evidence,
-    decrypt_and_verify_evidence,
-    get_fernet_cipher
-)
+from vault.validators import sanitize_filename, validate_inert_evidence_file
 
 
 @pytest.mark.django_db
@@ -29,7 +24,7 @@ def test_filename_sanitization_and_path_traversal():
     # Path traversal attempts
     assert sanitize_filename('../../etc/passwd.log') == 'passwd.log'
     assert sanitize_filename('..\\..\\windows\\system32\\cmd.log') == 'cmd.log'
-    
+
     # Dangerous special characters (without directory slashes)
     assert sanitize_filename('evidence;rm -rf;.txt') == 'evidence_rm_-rf.txt'
     assert sanitize_filename('safe_artifact.log') == 'safe_artifact.log'

@@ -4,10 +4,10 @@ Organization: Northbridge Cyber Response
 Module: CYS22301 Software and Platform Security (Level 6)
 """
 
-import pytest
 import pyotp
-from django.contrib.auth import authenticate
+import pytest
 from django.contrib.auth.hashers import identify_hasher
+
 from accounts.models import CustomUser, UserRole
 
 
@@ -86,3 +86,4 @@ def test_brute_force_account_lockout():
     user.reset_failed_logins()
     assert user.failed_login_attempts == 0
     assert user.is_account_locked() is False
+

@@ -3,6 +3,7 @@ Django Admin Configuration for Case Management
 """
 
 from django.contrib import admin
+
 from cases.models import Case, CaseMembership, CaseNote
 
 
