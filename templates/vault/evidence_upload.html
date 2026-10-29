@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Ingest Evidence — {{ case.case_number }} — CaseVault{% endblock %}
+
+{% block content %}
+<div style="max-width: 650px; margin: 1rem auto;">
+    <div style="margin-bottom: 1rem;">
+        <a href="{% url 'case_detail' case_id=case.id %}" style="color: var(--text-secondary); text-decoration: none; font-size: 0.85rem;">
+            &larr; Return to Case {{ case.case_number }}
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h1 class="card-title">Ingest Forensic Evidence Artifact</h1>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                    Target Case: <strong>{{ case.case_number }}</strong> ({{ case.client_organization }})
+                </p>
+            </div>
+            <span class="role-tag" style="background-color: #065f46; color: #a7f3d0;">AES-128-CBC + HMAC</span>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" action="{% url 'evidence_upload' case_id=case.id %}">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="id_evidence_file">Forensic Artifact File *</label>
+                <input type="file" name="evidence_file" id="id_evidence_file" class="form-input" required>
+                <p class="form-hint">
+                    Whitelisted formats: <code>.txt, .log, .pdf, .png, .jpg, .jpeg, .json, .csv, .pcap</code>.
+                    Executable formats, polyglots, scripts, and SVGs will be rejected by the magic-byte validator.
+                </p>
+            </div>
+
+            <div class="form-group">
+                <label for="id_description">Artifact Description & Source Context</label>
+                <input type="text" name="description" id="id_description" class="form-input" placeholder="e.g. Memory dump extract, firewall syslog, packet capture of exfiltration stream">
+            </div>
+
+            <div style="background-color: var(--bg-subtle); padding: 1rem; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 1.5rem; font-size: 0.8rem; color: var(--text-secondary);">
+                <p style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Cryptographic Pipeline:</p>
+                <ul style="padding-left: 1.25rem; line-height: 1.5;">
+                    <li>Plaintext stream SHA-256 and SHA-512 hashes computed in memory.</li>
+                    <li>Payload encrypted with authenticated Fernet envelope.</li>
+                    <li>Stored with randomized UUID identifier outside web server root.</li>
+                    <li>Logged to HMAC-SHA256 audit ledger with actor and client IP.</li>
+                </ul>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem;">
+                <button type="submit" class="btn btn-primary" style="padding: 0.65rem 1.25rem;">
+                    Encrypt & Ingest Artifact
+                </button>
+                <a href="{% url 'case_detail' case_id=case.id %}" class="btn btn-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Tamper-Evident Audit Trail — CaseVault{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 1.5rem; font-weight: 700;">Tamper-Evident Forensic Audit Ledger</h1>
+        <p style="color: var(--text-secondary); font-size: 0.875rem;">
+            Cryptographically chained via HMAC-SHA256 (ADR-0003). Proves non-repudiation and integrity.
+        </p>
+    </div>
+
+    <form method="post" action="{% url 'audit_log' %}">
+        {% csrf_token %}
+        <button type="submit" name="verify_chain" value="1" class="btn btn-primary">
+            🔍 Verify Cryptographic Hash Chain
+        </button>
+    </form>
+</div>
+
+{% if verification_result %}
+<div class="card" style="margin-bottom: 1.5rem; background-color: {% if verification_result.is_valid %}var(--success-bg){% else %}var(--danger-bg){% endif %}; border-color: {% if verification_result.is_valid %}var(--success){% else %}var(--danger){% endif %};">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+        <div style="font-size: 2rem;">{% if verification_result.is_valid %}✅{% else %}🚨{% endif %}</div>
+        <div>
+            <h3 style="font-size: 1.1rem; font-weight: 700; color: {% if verification_result.is_valid %}#86efac{% else %}#fca5a5{% endif %};">
+                {% if verification_result.is_valid %}Audit Trail Integrity Verified{% else %}Tamper Detection Alert!{% endif %}
+            </h3>
+            <p style="font-size: 0.9rem; margin-top: 0.25rem;">
+                {{ verification_result.message }}
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card" style="padding: 0; overflow: hidden;">
+    {% if entries %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Seq ID</th>
+                    <th>Timestamp (UTC)</th>
+                    <th>Security Action</th>
+                    <th>Actor</th>
+                    <th>Client IP</th>
+                    <th>Target</th>
+                    <th>Cryptographic HMAC Digest (Current Hash)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr>
+                    <td><strong style="color: var(--text-secondary);">#{{ entry.id }}</strong></td>
+                    <td style="font-size: 0.8rem; white-space: nowrap;">{{ entry.timestamp|date:"Y-m-d H:i:s" }}</td>
+                    <td>
+                        <span class="role-tag" style="background-color: #1e293b; color: #38bdf8; font-size: 0.7rem;">
+                            {{ entry.action }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if entry.actor_username %}
+                        <strong>{{ entry.actor_username }}</strong>
+                        {% else %}
+                        <span style="color: var(--text-secondary);">System</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 0.8rem; color: var(--text-secondary);">{{ entry.ip_address }}</td>
+                    <td style="font-size: 0.8rem;">
+                        {% if entry.target_model %}
+                        {{ entry.target_model }}: {{ entry.target_id|slice:":8" }}...
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="hash-code" title="Current Hash: {{ entry.current_hash }}&#10;Previous Hash: {{ entry.previous_hash }}">
+                            {{ entry.current_hash|slice:":18" }}...
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="padding: 3rem; text-align: center; color: var(--text-secondary);">
+        No audit log entries recorded yet.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Incident Cases — CaseVault{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <div>
+        <h1 style="font-size: 1.5rem; font-weight: 700;">Incident Response Cases</h1>
+        <p style="color: var(--text-secondary); font-size: 0.875rem;">
+            Tenancy Scoped: Showing cases authorized for {{ user.username }} ({{ user.organization }})
+        </p>
+    </div>
+    {% if user.is_lead_investigator or user.is_firm_admin %}
+    <a href="{% url 'case_create' %}" class="btn btn-primary">
+        + Initiate New Case
+    </a>
+    {% endif %}
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+    {% if cases %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Case Identifier</th>
+                    <th>Incident Title</th>
+                    <th>Client Organization</th>
+                    <th>Classification</th>
+                    <th>Status</th>
+                    <th>Lead Investigator</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for case in cases %}
+                <tr>
+                    <td>
+                        <strong style="color: var(--accent-light);">{{ case.case_number }}</strong>
+                    </td>
+                    <td>{{ case.title }}</td>
+                    <td>{{ case.client_organization }}</td>
+                    <td>
+                        <span class="role-tag" style="background-color: #374151; color: #e5e7eb;">
+                            {{ case.get_classification_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if case.status == 'ACTIVE' %}
+                        <span class="role-tag" style="background-color: #991b1b; color: #fecaca;">Active IR</span>
+                        {% elif case.status == 'CONTAINED' %}
+                        <span class="role-tag" style="background-color: #854d0e; color: #fef08a;">Contained</span>
+                        {% else %}
+                        <span class="role-tag" style="background-color: #166534; color: #bbf7d0;">{{ case.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ case.lead_investigator.username }}</td>
+                    <td>
+                        <a href="{% url 'case_detail' case_id=case.id %}" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+                            Access Dossier &rarr;
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="padding: 3rem; text-align: center; color: var(--text-secondary);">
+        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">No incident cases found.</p>
+        <p style="font-size: 0.85rem;">
+            Either no cases have been assigned to your profile, or your organization has no active investigations.
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

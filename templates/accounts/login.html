@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In — CaseVault{% endblock %}
+
+{% block content %}
+<div style="max-width: 440px; margin: 3rem auto;">
+    <div class="card">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔐</div>
+            <h1 class="card-title" style="font-size: 1.4rem;">Northbridge Incident Response</h1>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem;">
+                Authorized personnel access portal
+            </p>
+        </div>
+
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-error" style="margin-bottom: 1rem;">
+                {% for err in form.non_field_errors %}
+                <p>{{ err }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="id_username">Investigator Username</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                <div style="color: #fca5a5; font-size: 0.8rem; margin-top: 0.25rem;">
+                    {{ form.username.errors.0 }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_password">Password</label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                <div style="color: #fca5a5; font-size: 0.8rem; margin-top: 0.25rem;">
+                    {{ form.password.errors.0 }}
+                </div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 1rem;">
+                Authenticate & Proceed
+            </button>
+        </form>
+
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--text-secondary); text-align: center;">
+            <p><strong>Security Controls Enforced:</strong></p>
+            <p>Argon2id Memory-Hard Credential Verification</p>
+            <p>5-Attempt Brute-Force Lockout | Mandatory RFC 6238 TOTP</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Enroll Authenticator — CaseVault{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 2rem auto;">
+    <div class="card">
+        <div class="card-header">
+            <h1 class="card-title">Setup Multi-Factor Authentication (TOTP)</h1>
+            <span class="role-tag" style="background-color: #065f46; color: #6ee7b7;">RFC 6238 Standard</span>
+        </div>
+
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Northbridge Cyber Response policy mandates hardware or software TOTP second factors (e.g., Google Authenticator, FreeOTP, Aegis, 1Password) for all accounts.
+        </p>
+
+        <div style="display: flex; gap: 2rem; align-items: center; margin-bottom: 2rem; flex-wrap: wrap;">
+            <div style="background-color: #ffffff; padding: 1rem; border-radius: 8px; width: 220px; height: 220px; display: flex; align-items: center; justify-content: center;">
+                {{ qr_svg|safe }}
+            </div>
+
+            <div style="flex: 1; min-width: 240px;">
+                <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--accent-light);">Manual Secret Key</h3>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                    If unable to scan the QR code, manually enter this base32 seed:
+                </p>
+                <div class="hash-code" style="padding: 0.5rem; font-size: 0.9rem; letter-spacing: 0.1em; text-align: center;">
+                    {{ totp_secret }}
+                </div>
+            </div>
+        </div>
+
+        <form method="post" action="{% url 'mfa_setup' %}">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-error" style="margin-bottom: 1rem;">
+                {% for err in form.non_field_errors %}
+                <p>{{ err }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="id_token">Confirm Activation Code</label>
+                {{ form.token }}
+                {% if form.token.errors %}
+                <div style="color: #fca5a5; font-size: 0.8rem; margin-top: 0.25rem;">
+                    {{ form.token.errors.0 }}
+                </div>
+                {% endif %}
+                <p class="form-hint">Enter the 6-digit passcode displayed by your app to activate.</p>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="padding: 0.65rem 1.25rem;">
+                Activate Multi-Factor Authentication
+            </button>
+            <a href="{% url 'case_list' %}" class="btn btn-secondary" style="margin-left: 0.5rem;">
+                Return to Dashboard
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}
