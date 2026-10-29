@@ -21,8 +21,9 @@ DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 'yes')
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 if not SECRET_KEY:
     if DEBUG:
-        # Development fallback only
-        SECRET_KEY = 'insecure-dev-fallback-key-for-local-development-only-change-in-env'
+        # Generate ephemeral random key in memory for isolated development session
+        import secrets
+        SECRET_KEY = secrets.token_urlsafe(64)
     else:
         raise ValueError("CRITICAL SECURITY ERROR: DJANGO_SECRET_KEY is not defined in production environment!")
 

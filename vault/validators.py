@@ -55,14 +55,18 @@ def sanitize_filename(filename: str) -> str:
     Sanitizes user-provided filenames to prevent directory traversal and injection.
     Strips directory separators, removes non-alphanumeric characters except safe symbols.
     """
-    # 1. Take only the basename, discarding any path traversal prefixes
-    basename = os.path.basename(filename).strip()
+    # 1. Normalize directory separators and extract basename
+    normalized = filename.replace('\\', '/')
+    basename = os.path.basename(normalized).strip()
     
     # 2. Split extension and root
     root, ext = os.path.splitext(basename)
     
     # 3. Sanitize root to safe characters
     sanitized_root = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', root)
+    # Collapse multiple consecutive underscores
+    sanitized_root = re.sub(r'_+', '_', sanitized_root).strip('_')
+    
     if not sanitized_root:
         sanitized_root = "evidence_artifact"
 
