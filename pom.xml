@@ -16,7 +16,7 @@
 
     <properties>
         <java.version>21</java.version>
-        <spring-boot.version>3.4.2</spring-boot.version>
+        <spring-boot.version>4.1.2</spring-boot.version>
         <flyway.version>10.20.1</flyway.version>
         <postgresql.version>42.7.5</postgresql.version>
         <spring-session.version>3.4.1</spring-session.version>
