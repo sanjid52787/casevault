@@ -22,8 +22,8 @@ class HomeControllerTest {
     }
 
     @Test
-    void tBaseline001HomeAndHealthAreAvailable() throws Exception {
-        mockMvc.perform(get("/")).andExpect(status().isOk());
+    void tBaseline001HomeRequiresAuthenticationAndHealthIsAvailable() throws Exception {
+        mockMvc.perform(get("/")).andExpect(status().is3xxRedirection());
         mockMvc.perform(get("/actuator/health")).andExpect(status().isOk());
     }
 }

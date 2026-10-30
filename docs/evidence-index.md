@@ -19,3 +19,5 @@
 | SR-14 | Data minimisation and retention | TODO | TODO | T-RET-001..004 | TODO | Planned |
 | SR-15 | Supply-chain assurance | TODO | TODO | T-SC-001..005 | TODO | Planned |
 | SR-16 | Hardened deployment | TODO | TODO | T-DEPLOY-001..005 | TODO | Planned |
+| SR-01 | Password policy, Argon2id and generic login baseline | TODO | TODO | T-AUTH-002, T-AUTH-009 | `target/surefire-reports/` | Implemented Phase 3 (partial abuse controls) |
+| SR-02 | Form login, CSRF logout and secure session-cookie configuration | TODO | TODO | T-AUTH-008, T-SESS-003 | `target/surefire-reports/` | Implemented Phase 3 (session revocation pending) |
