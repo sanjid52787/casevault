@@ -8,5 +8,5 @@
 | SR-AUTHZ | HTTP role/tenant/assignment matrix and IDOR controls | T-AUTHZ-001; T-AUTHZ-IDOR-001..007 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.AuthorisationHttpMatrixTest.txt` | Verified |
 | SR-AUTHZ-ARCH | Controllers do not use repositories directly | T-AUTHZ-ARCH-001 | `target/surefire-reports/uk.ac.ravensbourne.casevault.security.ArchitectureRulesTest.txt` | Verified |
 | SR-CRYPTO | Test-only in-memory Tink keysets and non-test missing-keyset rejection | T-CRYPTO-001, T-CRYPTO-002 | `target/surefire-reports/uk.ac.ravensbourne.casevault.crypto.TinkKeysetProviderTest.txt` | Verified |
-| SR-FILE | Evidence ciphertext, tamper detection and associated-data swap resistance | T-FILE-006..008 | none | Planned — no matching test class exists |
-| SR-FILE | Other evidence validation and download controls | T-FILE-001..005, T-FILE-009..012 | none | Planned — no matching test class exists |
+| SR-FILE | Evidence validation, encrypted storage, integrity verification, tenant controls and safe downloads | T-FILE-001..012 | `target/surefire-reports/uk.ac.ravensbourne.casevault.service.EvidenceSecurityTest.txt`; `target/surefire-reports/uk.ac.ravensbourne.casevault.web.EvidenceHttpTest.txt` | Verified |
+| SR-FILE-RATE | Per-user and per-IP upload/download transfer throttling returns 429 with Retry-After | T-FILE-013 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.EvidenceHttpTest.txt` | Verified |
