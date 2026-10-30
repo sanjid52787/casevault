@@ -20,7 +20,7 @@
         <flyway.version>10.20.1</flyway.version>
         <postgresql.version>42.7.5</postgresql.version>
         <spring-session.version>3.4.1</spring-session.version>
-        <spring-security.version>6.4.2</spring-security.version>
+        <spring-security.version>7.1.2</spring-security.version>
         <thymeleaf-extras-springsecurity.version>3.1.3.RELEASE</thymeleaf-extras-springsecurity.version>
         <bucket4j.version>8.10.1</bucket4j.version>
         <tink.version>1.16.0</tink.version>
