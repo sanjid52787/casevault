@@ -1,0 +1,3 @@
+package uk.ac.ravensbourne.casevault.security;
+import org.springframework.security.core.userdetails.*; import org.springframework.stereotype.Service; import uk.ac.ravensbourne.casevault.repository.UserAccountRepository;
+@Service public class CaseVaultUserDetailsService implements UserDetailsService { private final UserAccountRepository users; public CaseVaultUserDetailsService(UserAccountRepository users){this.users=users;} @Override public UserDetails loadUserByUsername(String email){return users.findAll().stream().filter(u->u.getEmail().equalsIgnoreCase(email)).findFirst().map(UserPrincipal::from).orElseThrow(()->new UsernameNotFoundException("Invalid credentials"));} }
