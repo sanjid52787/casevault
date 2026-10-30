@@ -1,7 +1,7 @@
 # ADR-0001: Adoption of Argon2id for Password Hashing
 
 ## Status
-Accepted
+Accepted (Framework implementation superseded in part by ADR-0006 for Java/Spring Security `Argon2PasswordEncoder`; cryptographic parameters m=64MB, t=2, p=2 remain identical).
 
 ## Context
 CaseVault stores user credentials for Northbridge Cyber Response investigators, leadership, and external client auditors. A breach of password hashes could allow offline cracking and subsequent unauthorized access to sensitive forensic case details.

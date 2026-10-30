@@ -1,7 +1,7 @@
 # ADR-0003: Authenticated Evidence Encryption at Rest and Hash-Chained Audit Trail
 
 ## Status
-Accepted
+Accepted (Cryptographic requirements preserved in full; framework binding superseded in part by ADR-0006 for Java JCA AES-GCM and HmacSHA256).
 
 ## Context
 Forensic evidence collected during cyber incident investigations (memory dumps, network logs, configuration files) is legally sensitive. If the host filesystem, backup storage, or database volume is compromised, raw evidence must not be readable in plaintext.

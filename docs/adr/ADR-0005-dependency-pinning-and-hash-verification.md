@@ -1,7 +1,7 @@
 # ADR-0005: Cryptographic Dependency Pinning and Hash Verification
 
 ## Status
-Accepted
+Accepted (Supply chain integrity principle preserved in full; packaging implementation superseded in part by ADR-0006 for Maven dependency management and OWASP Dependency-Check).
 
 ## Context
 Modern software supply chain attacks compromise package registries (PyPI), insert malicious updates, or conduct typosquatting attacks. If dependencies are specified loosely (e.g. `django>=5.0`), automated builds can fetch compromised or tampered packages.

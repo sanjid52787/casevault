@@ -1,7 +1,7 @@
 # ADR-0002: Dual-Layer Access Control (Role-Based and Object-Level Authorization)
 
 ## Status
-Accepted
+Accepted (Architecture and policies preserved in full; framework binding superseded in part by ADR-0006 for Spring Security and JPA repository scoping).
 
 ## Context
 Northbridge Cyber Response handles confidential investigations across competing clients. A major vulnerability in incident response platforms is Insecure Direct Object References (IDOR / BOLA - Broken Object Level Authorization), where an authenticated investigator or client alters a URL identifier (e.g. `GET /cases/42/`) to view or download another party's evidence.

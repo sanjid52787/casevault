@@ -1,7 +1,7 @@
 # ADR-0006: Standardized Technology Stack & Defense-in-Depth Toolchain
 
 ## Status
-Accepted
+Superseded in part by ADR 0006 (`docs/adr/0006-switch-to-java-spring-boot.md`) for Python/Django runtime decisions; security controls, reverse proxy architecture, and threat model remain fully active.
 
 ## Context
 Assessment criteria for CYS22301 mandate a standardized, battle-tested technology stack for CaseVault:

@@ -1,7 +1,7 @@
 # ADR-0004: Safe File Handling, Strict Validation, and Sandboxed Evidence Download
 
 ## Status
-Accepted
+Accepted (Validation and sandboxing architecture preserved in full; framework binding superseded in part by ADR-0006 for Apache Tika and Spring MVC response headers).
 
 ## Context
 CaseVault accepts evidence files uploaded by investigators and clients (e.g. log files, packet traces, crash dumps, harmless screenshots). File uploads represent a premier attack vector:
