@@ -13,3 +13,4 @@ secrets/
 *.class
 *.log
 .env
+.AGENTS.md
