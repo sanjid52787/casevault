@@ -12,3 +12,4 @@
 | 2026-10-30 | Phase 6 keyset fix | Codex | Injectable file/test Tink keyset providers and crypto tests. | |
 | 2026-10-30 | Phase 6 tests | Codex | Inert evidence security and MockMvc test suites covering T-FILE-001..013. | |
 | 2026-10-30 | Phase 5 hardening | Codex | XSS, mass-assignment, date-range and optimistic-concurrency implementation and tests. | |
+| 2026-10-30 | Phase 7 remaining parts | Codex | Admin module, typed audit vocabulary, generic errors, correlation IDs and log sanitiser. | |

@@ -1,4 +1,4 @@
 package uk.ac.ravensbourne.casevault.web;
-import jakarta.persistence.OptimisticLockException; import org.springframework.stereotype.Controller; import org.springframework.web.bind.annotation.*;
-/** Avoids exposing persistence details when concurrent case edits conflict. */
-@ControllerAdvice public class CaseExceptionAdvice { @ExceptionHandler(OptimisticLockException.class) String conflict(){return "case-conflict";} }
+import jakarta.persistence.OptimisticLockException; import org.springframework.http.HttpStatus; import org.springframework.stereotype.Controller; import org.springframework.web.bind.annotation.*; import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException; import uk.ac.ravensbourne.casevault.service.CaseNotFoundException;
+/** Maps known failures to generic pages and keeps persistence details out of responses (CWE-209). */
+@ControllerAdvice public class CaseExceptionAdvice { @ExceptionHandler(OptimisticLockException.class) String conflict(){return "case-conflict";} @ExceptionHandler(MethodArgumentTypeMismatchException.class) @ResponseStatus(HttpStatus.BAD_REQUEST) String badRequest(){return "error";} @ExceptionHandler({IllegalArgumentException.class,CaseNotFoundException.class}) @ResponseStatus(HttpStatus.NOT_FOUND) String safe(){return "error";} @ExceptionHandler(Exception.class) @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR) String unexpected(){return "error";} }

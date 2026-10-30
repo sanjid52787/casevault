@@ -14,3 +14,6 @@
 | SR-VAL | Dedicated client case DTO ignores tenant, role, owner and status mass-assignment fields | T-CASE-003 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.CaseSecurityHardeningTest.txt` | Verified |
 | SR-CONCURRENCY | Stale case version returns a generic, friendly conflict page without persistence internals | T-CASE-005 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.CaseSecurityHardeningTest.txt` | Verified |
 | SR-INJ | Date range is applied as a typed, database-scoped predicate within client case search | T-CASE-004 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.CaseSecurityHardeningTest.txt` | Verified |
+| SR-ADMIN | Auditor-only account administration, disable/revoke/reset protections and audit access | T-ADMIN-001..005 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.AdminSecurityTest.txt` | Verified |
+| SR-ERR | Generic malformed-request response with correlation ID and no implementation details | T-ERR-001 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.AdminSecurityTest.txt` | Verified |
+| SR-LOG | CR/LF sanitisation for log-safe user-controlled values | T-LOG-001..002 | `target/surefire-reports/uk.ac.ravensbourne.casevault.common.LogSanitizerTest.txt` | Verified |

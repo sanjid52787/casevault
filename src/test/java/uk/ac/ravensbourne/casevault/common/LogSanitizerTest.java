@@ -1,0 +1,2 @@
+package uk.ac.ravensbourne.casevault.common; import static org.junit.jupiter.api.Assertions.*; import org.junit.jupiter.api.*;
+class LogSanitizerTest { @Test void tLog001CrLfIsRemoved(){assertEquals("user forged",LogSanitizer.value("user\r\n forged"));} @Test void tLog002SensitiveValuesAreNotAddedToSanitisedLogFields(){String attempt=LogSanitizer.value("attacker\r\npassword=secret token=abc session=xyz");assertFalse(attempt.contains("\r"));assertFalse(attempt.contains("\n"));assertFalse(LogSanitizer.value(null).contains("password"));} }
