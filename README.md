@@ -19,6 +19,7 @@ winget --version
 
 # Run project:
 Set-ExecutionPolicy -Scope Process Bypass
+
 .\scripts\start-dev.ps1
 
 ## Prerequisites
