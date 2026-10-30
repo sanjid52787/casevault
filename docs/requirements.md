@@ -58,3 +58,7 @@ Scope: **own org** is the caller's organisation; **assigned** is an analyst assi
 | Search cases | own org | assigned | all | security-event metadata only |
 | Generate/approve report | own org / no approval | assigned / no approval | all / approve | none |
 | View audit/account health; disable/revoke | none | none | none | all administrative metadata |
+
+## Implemented authorisation decision table
+
+The central `AccessPolicy` is deny-by-default. Client users are restricted to their organisation and may create/upload; analysts require a `case_assignments` entry for every case-content operation; managers may view metadata, assign, change status and approve another user's report; auditor/admin users can view audit/account/health metadata only. Auditors never receive case notes, evidence content, or report content. An unauthorised object lookup is reported as 404 and produces a rate-limited `ACCESS_DENIED` audit signal. Request DTOs must never supply organisation, role, owner, or status authority fields.

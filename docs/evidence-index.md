@@ -5,6 +5,7 @@
 | BASE-001 | Maven baseline builds and exposes only the health actuator endpoint. | `cb86e43` | TODO | T-BASELINE-001 | `target/surefire-reports/uk.ac.ravensbourne.casevault.HomeControllerTest.txt` | Verified 2026-10-30 |
 | SR-01 | Authentication and password protection | TODO | TODO | T-AUTH-001..005 | TODO | Planned |
 | SR-02 | Revocable server-side session security | TODO | TODO | T-SESS-001..005 | TODO | Planned |
+| SR-03 | Central deny-by-default role, tenant and assignment policy | TODO | TODO | T-AUTHZ-001, T-AUTHZ-002, T-AUTHZ-IDOR-001, T-AUTHZ-OWN-REPORT-001 | `target/surefire-reports/` | Implemented Phase 4 baseline |
 | SR-03 | RBAC, tenant and object authorisation | TODO | TODO | T-AUTHZ-001..008 | TODO | Planned |
 | SR-04 | Server-side input validation and bound queries | TODO | TODO | T-INPUT-001..004 | TODO | Planned |
 | SR-05 | Output encoding and XSS prevention | TODO | TODO | T-XSS-001..003 | TODO | Planned |
