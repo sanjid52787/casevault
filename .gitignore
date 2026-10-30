@@ -5,6 +5,8 @@ target/
 *.key
 uploads/
 secrets/
+*.keyset
+*keyset*.json
 .idea/
 .vscode/
 *.iml
