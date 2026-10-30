@@ -1,0 +1,1 @@
+package uk.ac.ravensbourne.casevault.storage; import java.nio.file.Path; import org.springframework.stereotype.Service; /** Dev/test stub only: accepts inert files after all structural validation. */ @Service public class NoOpScanService implements ScanService { public void scan(Path candidate){} }

@@ -1,0 +1,1 @@
+package uk.ac.ravensbourne.casevault.repository; import java.util.*; import org.springframework.data.jpa.repository.JpaRepository; import uk.ac.ravensbourne.casevault.domain.EvidenceFile; public interface EvidenceFileRepository extends JpaRepository<EvidenceFile,UUID>{Optional<EvidenceFile> findByIdAndCaseRecordId(UUID id,UUID caseId); long countByCaseRecordId(UUID caseId);}

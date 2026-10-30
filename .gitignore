@@ -4,6 +4,7 @@ target/
 *.pem
 *.key
 uploads/
+secrets/
 .idea/
 .vscode/
 *.iml
