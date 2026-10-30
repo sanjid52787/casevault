@@ -1,0 +1,1 @@
+<!doctype html><html lang="en" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><title>Cases</title></head><body><main><h1>Cases</h1><form method="get"><label>Search <input name="q"></label><button>Search</button></form><ul><li th:each="c:${cases.content}"><a th:href="@{/cases/{id}(id=${c.id})}" th:text="${c.title}">case</a></li></ul></main></body></html>

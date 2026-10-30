@@ -1,0 +1,1 @@
+ALTER TABLE case_notes ADD COLUMN client_visible BOOLEAN NOT NULL DEFAULT FALSE;

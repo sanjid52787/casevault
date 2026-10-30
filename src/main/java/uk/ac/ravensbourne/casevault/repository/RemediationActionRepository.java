@@ -1,0 +1,1 @@
+package uk.ac.ravensbourne.casevault.repository; import java.util.*; import org.springframework.data.jpa.repository.JpaRepository; import uk.ac.ravensbourne.casevault.domain.RemediationAction; public interface RemediationActionRepository extends JpaRepository<RemediationAction,UUID>{}
