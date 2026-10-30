@@ -1,3 +1,0 @@
-# CaseVault Production Requirements (Delegates to hashed lockfile)
--r requirements.lock
-
