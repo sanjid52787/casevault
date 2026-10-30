@@ -50,13 +50,13 @@ Scope: **own org** is the caller's organisation; **assigned** is an analyst assi
 
 | Action | CLIENT_USER | SECURITY_ANALYST | CASE_MANAGER | AUDITOR_ADMIN |
 |---|---|---|---|---|
-| Create incident | own org | none | all | none |
+| Create incident | own org | none | none | none |
 | View case body | own org | assigned | all | none |
 | Set classification/status; assign analyst | none | none | all | none |
-| Add/view notes and actions | none | assigned | all | none |
+| Add/view notes and actions | view client-visible notes only | assigned | all | **none — never case content** |
 | Upload/download evidence | own org | assigned | all | **none — never evidence content** |
 | Search cases | own org | assigned | all | security-event metadata only |
-| Generate/approve report | own org / no approval | assigned / no approval | all / approve | none |
+| Generate/approve report | view approved reports only | generate draft when assigned / no approval | approve another user's report | **none — never report content** |
 | View audit/account health; disable/revoke | none | none | none | all administrative metadata |
 
 ## Implemented authorisation decision table

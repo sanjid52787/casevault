@@ -5,7 +5,7 @@
 | BASE-001 | Maven baseline builds and exposes only the health actuator endpoint. | `cb86e43` | TODO | T-BASELINE-001 | `target/surefire-reports/uk.ac.ravensbourne.casevault.HomeControllerTest.txt` | Verified 2026-10-30 |
 | SR-01 | Authentication, password policy, generic failures, lockout and login abuse controls | Pending commit | TODO | T-AUTH-001..010, T-RATE-001 | `target/surefire-reports/uk.ac.ravensbourne.casevault.security.AuthenticationSessionSecurityTest.txt` | Verified Phase 3 |
 | SR-02 | Revocable JDBC sessions, fixation protection, 15-minute idle timeout and secure cookies | Pending commit | TODO | T-SESS-001..003 | `target/surefire-reports/uk.ac.ravensbourne.casevault.security.AuthenticationSessionSecurityTest.txt` | Verified Phase 3 |
-| SR-03 | Central deny-by-default role, tenant and assignment policy | TODO | TODO | T-AUTHZ-001, T-AUTHZ-002, T-AUTHZ-IDOR-001, T-AUTHZ-OWN-REPORT-001 | `target/surefire-reports/` | Implemented Phase 4 baseline |
+| SR-03 | Central deny-by-default role, tenant and assignment policy | Pending commit | TODO | T-AUTHZ-001, T-AUTHZ-IDOR-001..007, T-AUTHZ-ARCH-001..002 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.AuthorisationHttpMatrixTest.txt` | Verified Phase 4 |
 | SR-11 | Persistent append-only HMAC-SHA256 audit chain | TODO | TODO | T-AUDIT-001..004 | `target/surefire-reports/uk.ac.ravensbourne.casevault.audit.PersistentAuditServiceTest.txt` | Implemented 2026-10-30 |
 | SR-03 | RBAC, tenant and object authorisation | TODO | TODO | T-AUTHZ-001..008 | TODO | Planned |
 | SR-04 | Server-side input validation and bound queries | TODO | TODO | T-INPUT-001..004 | TODO | Planned |
