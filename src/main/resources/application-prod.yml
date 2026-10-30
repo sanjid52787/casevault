@@ -1,5 +1,8 @@
 # Production secrets are supplied by the deployment environment or Docker secrets.
 spring:
+  config:
+    activate:
+      on-profile: prod
   thymeleaf:
     cache: true
 server:

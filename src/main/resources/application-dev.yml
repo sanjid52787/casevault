@@ -1,4 +1,7 @@
 # Development-only defaults belong in local environment variables; do not commit secrets.
 spring:
+  config:
+    activate:
+      on-profile: dev
   thymeleaf:
     cache: false

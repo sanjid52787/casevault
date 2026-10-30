@@ -4,4 +4,7 @@ spring:
     username: sa
     password: ""
   flyway:
-    enabled: false
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate

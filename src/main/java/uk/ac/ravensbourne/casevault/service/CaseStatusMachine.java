@@ -1,0 +1,4 @@
+package uk.ac.ravensbourne.casevault.service;
+import java.util.*; import uk.ac.ravensbourne.casevault.domain.CaseStatus;
+/** Validates workflow transitions to prevent unauthorised or inconsistent case lifecycle changes (CWE-841). */
+public final class CaseStatusMachine { private static final Map<CaseStatus,Set<CaseStatus>> NEXT=Map.of(CaseStatus.NEW,Set.of(CaseStatus.TRIAGED),CaseStatus.TRIAGED,Set.of(CaseStatus.IN_PROGRESS),CaseStatus.IN_PROGRESS,Set.of(CaseStatus.AWAITING_CLIENT,CaseStatus.RESOLVED),CaseStatus.AWAITING_CLIENT,Set.of(CaseStatus.IN_PROGRESS,CaseStatus.RESOLVED),CaseStatus.RESOLVED,Set.of(CaseStatus.CLOSED,CaseStatus.IN_PROGRESS),CaseStatus.CLOSED,Set.of()); private CaseStatusMachine(){} public static boolean permits(CaseStatus from,CaseStatus to){return NEXT.get(from).contains(to);} public static void requirePermitted(CaseStatus from,CaseStatus to){if(!permits(from,to)) throw new IllegalArgumentException("Invalid case status transition");} }
