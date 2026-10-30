@@ -2,6 +2,25 @@
 
 CaseVault is a secure, server-rendered case-management and evidence-sharing platform for the fictional Northbridge Cyber Response consultancy.
 
+# project install and run process
+# Git install:
+winget install --id Git.Git --exact --accept-package-agreements --accept-source-agreements
+
+# Java 21 install:
+winget install --id EclipseAdoptium.Temurin.21.JDK --exact --accept-package-agreements --accept-source-agreements
+
+# Windows App Installer / winget update or install:
+winget install --id Microsoft.AppInstaller --exact --accept-package-agreements --accept-source-agreements
+
+# Check all installation:
+git --version
+java -version
+winget --version
+
+# Run project:
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\start-dev.ps1
+
 ## Prerequisites
 
 - Java 21 (LTS)
