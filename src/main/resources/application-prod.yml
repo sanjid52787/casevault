@@ -1,0 +1,9 @@
+# Production secrets are supplied by the deployment environment or Docker secrets.
+spring:
+  thymeleaf:
+    cache: true
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true

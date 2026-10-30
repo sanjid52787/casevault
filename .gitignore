@@ -1,99 +1,11 @@
-# CaseVault - Security & Platform .gitignore
-# University Assessment: CYS22301 Software and Platform Security (Level 6)
-
-# Environment variables & secrets (CRITICAL: NEVER COMMIT SECRETS)
+target/
+.mvn/repository/
 .env
-.env.local
-.env.*.local
-*.key
 *.pem
-*.cert
-*.crt
-nginx/certs/*
-!nginx/certs/.gitkeep
-
-# Python bytecode & runtime
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual environments
-.venv/
-venv/
-env/
-ENV/
-env.bak/
-venv.bak/
-
-# SQLite Databases & Local Test Storage
-*.sqlite3
-*.db
-db.sqlite3-journal
-
-# Evidence storage (encrypted at rest; never commit raw or encrypted evidence)
-media/
-evidence_vault/
-encrypted_evidence/
-vault_storage/
-
-# Testing & Software Assurance
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
-htmlcov/
-report.html
-bandit_report.json
-pip_audit_report.json
-
-# IDE & Editor artifacts
-.vscode/
+*.key
+uploads/
 .idea/
-*.sublime-project
-*.sublime-workspace
-.project
-.pydevproject
-.settings/
-
-# OS specific files
-Thumbs.db
-[Dd]esktop.ini
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-
-# Logs
+.vscode/
+*.iml
+*.class
 *.log
-logs/
-run/
-

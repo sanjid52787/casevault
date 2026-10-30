@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: casevault
+  datasource:
+    url: ${CASEVAULT_DB_URL}
+    username: ${CASEVAULT_DB_USERNAME}
+    password: ${CASEVAULT_DB_PASSWORD}
+  flyway:
+    enabled: true
+  session:
+    jdbc:
+      initialize-schema: never
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+server:
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
