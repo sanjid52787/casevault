@@ -1,5 +1,1 @@
-<!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><title>CaseVault</title></head>
-<body><main><h1>CaseVault</h1><p th:text="${role}">Role-aware dashboard</p><a th:href="@{/cases}">Cases</a></main></body>
-</html>
+<!doctype html><html lang="en" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dashboard | CaseVault</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><header class="topbar"><a class="brand" th:href="@{/}"><span class="brand-mark">✓</span>CaseVault</a><nav class="topnav"><a th:href="@{/cases}">Cases</a><a th:href="@{/password/change}">Password</a></nav></header><main class="page"><p class="eyebrow">Secure operations workspace</p><h1>Good to see you.</h1><p class="subtitle">Your current role: <strong th:text="${role}">Role</strong></p><section class="dashboard"><article class="card"><h2>Case management</h2><p class="subtitle">View scoped cases, collaborate safely, and keep investigation activity protected.</p><a class="button" th:href="@{/cases}">Open case workspace</a></article><aside class="metric"><span>Access level</span><strong th:text="${role}">Role</strong><small>Permissions are enforced server-side.</small></aside></section></main></body></html>
