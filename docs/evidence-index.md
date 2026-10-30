@@ -8,6 +8,8 @@
 | SR-03 | Central deny-by-default role, tenant and assignment policy | Pending commit | TODO | T-AUTHZ-001, T-AUTHZ-IDOR-001..007, T-AUTHZ-ARCH-001..002 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.AuthorisationHttpMatrixTest.txt` | Verified Phase 4 |
 | SR-11 | Persistent append-only HMAC-SHA256 audit chain | TODO | TODO | T-AUDIT-001..004 | `target/surefire-reports/uk.ac.ravensbourne.casevault.audit.PersistentAuditServiceTest.txt` | Implemented 2026-10-30 |
 | SR-03 | RBAC, tenant and object authorisation | TODO | TODO | T-AUTHZ-001..008 | TODO | Planned |
+| SR-04 | DTO validation, normalisation and bound scoped queries | Pending commit | TODO | T-CASE-001..002, T-INJ-001..002 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.AuthorisationHttpMatrixTest.txt` | Partial: endpoint validation/XSS tests pending |
+| SR-05 | Thymeleaf output escaping | Pending commit | TODO | T-XSS-001 | TODO | Partial: templates escape by default; dedicated rendering test pending |
 | SR-04 | Server-side input validation and bound queries | TODO | TODO | T-INPUT-001..004 | TODO | Planned |
 | SR-05 | Output encoding and XSS prevention | TODO | TODO | T-XSS-001..003 | TODO | Planned |
 | SR-06 | CSRF protection | TODO | TODO | T-CSRF-001..002 | TODO | Planned |
