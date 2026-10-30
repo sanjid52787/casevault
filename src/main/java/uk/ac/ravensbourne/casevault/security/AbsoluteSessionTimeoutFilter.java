@@ -1,0 +1,4 @@
+package uk.ac.ravensbourne.casevault.security;
+import jakarta.servlet.*; import jakarta.servlet.http.*; import java.io.IOException; import java.time.Duration; import org.springframework.stereotype.Component; import org.springframework.web.filter.OncePerRequestFilter;
+/** Enforces the eight-hour absolute session lifetime independently of idle expiry (CWE-613). */
+@Component public class AbsoluteSessionTimeoutFilter extends OncePerRequestFilter { private static final long MAX=Duration.ofHours(8).toMillis(); static boolean expired(long creationTime,long now){return now-creationTime>MAX;} @Override protected void doFilterInternal(HttpServletRequest r,HttpServletResponse s,FilterChain c)throws ServletException,IOException {var session=r.getSession(false);if(session!=null&&expired(session.getCreationTime(),System.currentTimeMillis())){session.invalidate();s.sendRedirect("/login?expired");return;}c.doFilter(r,s);} }

@@ -1,0 +1,4 @@
+package uk.ac.ravensbourne.casevault.security;
+import jakarta.servlet.*; import jakarta.servlet.http.*; import java.io.IOException; import org.springframework.stereotype.Component; import org.springframework.web.filter.OncePerRequestFilter;
+/** Applies both IP and submitted-account buckets before authentication work (CWE-770). */
+@Component public class LoginRateLimitFilter extends OncePerRequestFilter { private final LoginRateLimiter limiter; public LoginRateLimitFilter(LoginRateLimiter l){limiter=l;} @Override protected void doFilterInternal(HttpServletRequest r,HttpServletResponse s,FilterChain c)throws ServletException,IOException {if("POST".equals(r.getMethod())&&"/login".equals(r.getServletPath())&&!limiter.allow(r.getRemoteAddr(),r.getParameter("username"))){s.sendRedirect("/login?error");return;}c.doFilter(r,s);} }
