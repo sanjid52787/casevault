@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,7 @@ import uk.ac.ravensbourne.casevault.repository.OrganisationRepository;
 import uk.ac.ravensbourne.casevault.repository.UserAccountRepository;
 import uk.ac.ravensbourne.casevault.security.UserPrincipal;
 import uk.ac.ravensbourne.casevault.service.EvidenceService;
+import uk.ac.ravensbourne.casevault.support.TestDataCleaner;
 
 /** HTTP evidence controls: BOLA denial, safe download headers and transfer throttling. */
 @SpringBootTest(properties = "casevault.evidence.directory=target/evidence-security-test")
@@ -60,14 +62,7 @@ class EvidenceHttpTest {
     void setUp() throws Exception {
         jdbc.update("DELETE FROM audit_events");
         jdbc.update("UPDATE audit_chain_head SET last_event_id=NULL,last_hash=NULL WHERE singleton=TRUE");
-        jdbc.update("DELETE FROM evidence_files");
-        jdbc.update("DELETE FROM reports");
-        jdbc.update("DELETE FROM remediation_actions");
-        jdbc.update("DELETE FROM case_notes");
-        jdbc.update("DELETE FROM case_assignments");
-        cases.deleteAll();
-        users.deleteAll();
-        organisations.deleteAll();
+        TestDataCleaner.clean(jdbc);
         Files.createDirectories(EVIDENCE_ROOT);
         try (var paths = Files.list(EVIDENCE_ROOT)) {
             for (Path path : paths.toList()) Files.deleteIfExists(path);
@@ -83,6 +78,9 @@ class EvidenceHttpTest {
         evidenceA = evidence.upload(UserPrincipal.from(clientA), caseA.getId(),
                 new MockMultipartFile("file", "download.txt", "application/octet-stream", "inert download".getBytes()));
     }
+
+    @AfterEach
+    void cleanFixtures() { TestDataCleaner.clean(jdbc); }
 
     @Test
     void tFile009CrossTenantDownloadReturns404() throws Exception {

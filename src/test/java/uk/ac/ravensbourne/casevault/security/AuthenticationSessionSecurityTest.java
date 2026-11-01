@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Duration;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,7 @@ import uk.ac.ravensbourne.casevault.domain.Role;
 import uk.ac.ravensbourne.casevault.domain.UserAccount;
 import uk.ac.ravensbourne.casevault.repository.OrganisationRepository;
 import uk.ac.ravensbourne.casevault.repository.UserAccountRepository;
+import uk.ac.ravensbourne.casevault.support.TestDataCleaner;
 
 /** Integration evidence for the Phase 3 authentication and session controls. */
 @SpringBootTest
@@ -52,10 +54,11 @@ class AuthenticationSessionSecurityTest {
     @BeforeEach void seed() {
         jdbc.update("DELETE FROM SPRING_SESSION_ATTRIBUTES"); jdbc.update("DELETE FROM SPRING_SESSION");
         jdbc.update("DELETE FROM audit_events"); jdbc.update("UPDATE audit_chain_head SET last_event_id=NULL,last_hash=NULL WHERE singleton=TRUE");
-        users.deleteAll(); orgs.deleteAll();
+        TestDataCleaner.clean(jdbc);
         var org=orgs.save(new Organisation(UUID.randomUUID(),"Auth Test Org"));
         user=users.save(new UserAccount(UUID.randomUUID(),org,"user@example.test",encoder.encode("correct horse battery staple"),Role.CLIENT_USER));
     }
+    @AfterEach void cleanFixtures() { TestDataCleaner.clean(jdbc); }
     private Authentication token(String password){return UsernamePasswordAuthenticationToken.unauthenticated("user@example.test",password);}
     @Test void tAuth001LoginSuccess(){assertTrue(provider.authenticate(token("correct horse battery staple")).isAuthenticated());}
     @Test void tAuth002WrongPasswordGenericError(){assertThrows(BadCredentialsException.class,()->provider.authenticate(token("wrong password")));}

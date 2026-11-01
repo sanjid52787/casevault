@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import uk.ac.ravensbourne.casevault.domain.UserAccount;
 import uk.ac.ravensbourne.casevault.repository.OrganisationRepository;
 import uk.ac.ravensbourne.casevault.repository.UserAccountRepository;
 import uk.ac.ravensbourne.casevault.security.UserPrincipal;
+import uk.ac.ravensbourne.casevault.support.TestDataCleaner;
 
 /** Regression tests for safe, usable server-side validation of the create-case form. */
 @SpringBootTest
@@ -40,17 +42,13 @@ class CaseControllerValidationTest {
     void setUp() {
         jdbc.update("DELETE FROM audit_events");
         jdbc.update("UPDATE audit_chain_head SET last_event_id=NULL,last_hash=NULL WHERE singleton=TRUE");
-        jdbc.update("DELETE FROM evidence_files");
-        jdbc.update("DELETE FROM reports");
-        jdbc.update("DELETE FROM remediation_actions");
-        jdbc.update("DELETE FROM case_notes");
-        jdbc.update("DELETE FROM case_assignments");
-        jdbc.update("DELETE FROM cases");
-        users.deleteAll();
-        organisations.deleteAll();
+        TestDataCleaner.clean(jdbc);
         Organisation organisation = organisations.save(new Organisation(UUID.randomUUID(), "Validation Client"));
         client = users.save(new UserAccount(UUID.randomUUID(), organisation, "validation-client@test", "hash", Role.CLIENT_USER));
     }
+
+    @AfterEach
+    void cleanFixtures() { TestDataCleaner.clean(jdbc); }
 
     @Test
     void tCase006InvalidTitleShowsEscapedValidationMessage() throws Exception {

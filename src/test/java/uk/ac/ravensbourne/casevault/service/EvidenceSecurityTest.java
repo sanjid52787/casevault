@@ -13,6 +13,7 @@ import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,7 @@ import uk.ac.ravensbourne.casevault.repository.EvidenceFileRepository;
 import uk.ac.ravensbourne.casevault.repository.OrganisationRepository;
 import uk.ac.ravensbourne.casevault.repository.UserAccountRepository;
 import uk.ac.ravensbourne.casevault.security.UserPrincipal;
+import uk.ac.ravensbourne.casevault.support.TestDataCleaner;
 
 /** Inert, programmatically-created file checks for the Phase 6 validation and crypto controls. */
 @SpringBootTest(properties = "casevault.evidence.directory=target/evidence-security-test")
@@ -57,14 +59,7 @@ class EvidenceSecurityTest {
     void setUp() throws IOException {
         jdbc.update("DELETE FROM audit_events");
         jdbc.update("UPDATE audit_chain_head SET last_event_id=NULL,last_hash=NULL WHERE singleton=TRUE");
-        jdbc.update("DELETE FROM evidence_files");
-        jdbc.update("DELETE FROM reports");
-        jdbc.update("DELETE FROM remediation_actions");
-        jdbc.update("DELETE FROM case_notes");
-        jdbc.update("DELETE FROM case_assignments");
-        cases.deleteAll();
-        users.deleteAll();
-        organisations.deleteAll();
+        TestDataCleaner.clean(jdbc);
         Files.createDirectories(EVIDENCE_ROOT);
         try (var paths = Files.list(EVIDENCE_ROOT)) {
             for (Path path : paths.toList()) Files.deleteIfExists(path);
@@ -76,6 +71,9 @@ class EvidenceSecurityTest {
         caseTwo = cases.save(new CaseRecord(UUID.randomUUID(), organisation, "Evidence case two", "Synthetic case",
                 Category.OTHER, Severity.LOW, client));
     }
+
+    @AfterEach
+    void cleanFixtures() { TestDataCleaner.clean(jdbc); }
 
     @Test
     void tFile001ValidTxtPdfAndPngAccepted() throws Exception {

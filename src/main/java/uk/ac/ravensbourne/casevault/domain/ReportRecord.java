@@ -19,5 +19,5 @@ public class ReportRecord {
     public ReportRecord(UUID id, CaseRecord caseRecord, Organisation organisation, UserAccount generatedBy,int version,String content) { this.id=id; this.caseRecord=caseRecord; this.organisation=organisation; this.generatedBy=generatedBy; this.version=version; this.content=content; this.status=ReportStatus.DRAFT; }
     public UUID getId(){return id;} public CaseRecord getCaseRecord(){return caseRecord;} public UserAccount getGeneratedBy(){return generatedBy;} public int getVersion(){return version;} public String getContent(){return content;} public ReportStatus getStatus(){return status;}
     public void submit(){if(status!=ReportStatus.DRAFT)throw new IllegalStateException("Invalid report workflow");status=ReportStatus.SUBMITTED;}
-    public void approve(UserAccount manager){this.status=ReportStatus.APPROVED;this.approvedBy=manager;}
+    public void approve(UserAccount manager){if(status!=ReportStatus.SUBMITTED)throw new IllegalStateException("Only submitted reports can be approved");if(generatedBy.getId().equals(manager.getId()))throw new IllegalArgumentException("Report generator cannot approve their own report");this.status=ReportStatus.APPROVED;this.approvedBy=manager;}
 }

@@ -2,6 +2,7 @@ package uk.ac.ravensbourne.casevault.web;
 
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -19,6 +20,7 @@ import uk.ac.ravensbourne.casevault.domain.Category;
 import uk.ac.ravensbourne.casevault.domain.Severity;
 import uk.ac.ravensbourne.casevault.security.UserPrincipal;
 import uk.ac.ravensbourne.casevault.service.CaseManagementService;
+import uk.ac.ravensbourne.casevault.service.CaseRateLimitService;
 import uk.ac.ravensbourne.casevault.service.CaseViewService;
 import uk.ac.ravensbourne.casevault.service.CaseWorkflowService;
 import uk.ac.ravensbourne.casevault.service.ReportApprovalService;
@@ -32,13 +34,15 @@ public class CaseController {
     private final ReportApprovalService reports;
     private final CaseWorkflowService workflow;
     private final CaseViewService views;
+    private final CaseRateLimitService rateLimits;
 
     public CaseController(CaseManagementService management, ReportApprovalService reports,
-                          CaseWorkflowService workflow, CaseViewService views) {
+                          CaseWorkflowService workflow, CaseViewService views, CaseRateLimitService rateLimits) {
         this.management = management;
         this.reports = reports;
         this.workflow = workflow;
         this.views = views;
+        this.rateLimits = rateLimits;
     }
 
     @GetMapping("/new") @PreAuthorize("hasRole('CLIENT_USER')")
@@ -85,7 +89,8 @@ public class CaseController {
                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
                 @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
-                @RequestParam(defaultValue = "createdAt") String sort, Model model) {
+                @RequestParam(defaultValue = "createdAt") String sort, Model model, HttpServletRequest request) {
+        rateLimits.checkSearch(principal, request.getRemoteAddr());
         model.addAttribute("cases", workflow.search(principal, q, category, severity, status, owner, from, to, page, size, sort));
         model.addAttribute("query", q == null ? "" : q);
         return "case-list";

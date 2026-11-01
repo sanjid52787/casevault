@@ -12,6 +12,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,7 @@ import uk.ac.ravensbourne.casevault.repository.OrganisationRepository;
 import uk.ac.ravensbourne.casevault.repository.UserAccountRepository;
 import uk.ac.ravensbourne.casevault.security.UserPrincipal;
 import uk.ac.ravensbourne.casevault.service.CaseWorkflowService;
+import uk.ac.ravensbourne.casevault.support.TestDataCleaner;
 import uk.ac.ravensbourne.casevault.web.dto.CaseMutationRequests;
 
 /** Verifies XSS encoding, binding isolation, deterministic stale writes, and scoped dates. */
@@ -57,14 +59,7 @@ class CaseSecurityHardeningTest {
     void setUp() {
         jdbc.update("DELETE FROM audit_events");
         jdbc.update("UPDATE audit_chain_head SET last_event_id=NULL,last_hash=NULL WHERE singleton=TRUE");
-        jdbc.update("DELETE FROM evidence_files");
-        jdbc.update("DELETE FROM reports");
-        jdbc.update("DELETE FROM remediation_actions");
-        jdbc.update("DELETE FROM case_notes");
-        jdbc.update("DELETE FROM case_assignments");
-        cases.deleteAll();
-        users.deleteAll();
-        organisations.deleteAll();
+        TestDataCleaner.clean(jdbc);
         clientOrganisation = organisations.save(new Organisation(UUID.randomUUID(), "Client Organisation"));
         Organisation otherOrganisation = organisations.save(new Organisation(UUID.randomUUID(), "Other Organisation"));
         Organisation internal = organisations.save(new Organisation(UUID.randomUUID(), "Internal Organisation"));
@@ -80,6 +75,9 @@ class CaseSecurityHardeningTest {
         cases.save(new CaseRecord(UUID.randomUUID(), otherOrganisation, "Other tenant case", "Synthetic",
                 Category.OTHER, Severity.LOW, otherClient));
     }
+
+    @AfterEach
+    void cleanFixtures() { TestDataCleaner.clean(jdbc); }
 
     @Test
     void tXss001StoredTitleNoteAndSearchTermAreEscapedInResponses() throws Exception {

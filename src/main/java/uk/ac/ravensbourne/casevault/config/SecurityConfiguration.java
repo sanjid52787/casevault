@@ -34,14 +34,14 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, CaseVaultAuthenticationProvider provider, LoginRateLimitFilter loginRate, AbsoluteSessionTimeoutFilter absolute, DisabledAccountSessionFilter disabled, SessionRegistry sessionRegistry) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, CaseVaultAuthenticationProvider provider, LoginRateLimitFilter loginRate, AbsoluteSessionTimeoutFilter absolute, DisabledAccountSessionFilter disabled, SessionRegistry sessionRegistry, SafeAuthenticationSuccessHandler successHandler) throws Exception {
         return http
                 .authenticationProvider(provider)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/login", "/css/**", "/actuator/health").permitAll()
                         .requestMatchers("/admin/**").hasRole("AUDITOR_ADMIN")
                         .anyRequest().authenticated())
-                .formLogin(login -> login.loginPage("/login").defaultSuccessUrl("/",true).failureUrl("/login?error"))
+                .formLogin(login -> login.loginPage("/login").successHandler(successHandler).failureUrl("/login?error"))
                 .logout(logout -> logout.logoutUrl("/logout").invalidateHttpSession(true).deleteCookies("SESSION").logoutSuccessUrl("/login?logout"))
                 .sessionManagement(session -> session.sessionFixation(fixation->fixation.changeSessionId())
                         .maximumSessions(2).maxSessionsPreventsLogin(false).sessionRegistry(sessionRegistry))
