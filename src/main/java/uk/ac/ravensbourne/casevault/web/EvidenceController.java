@@ -35,7 +35,7 @@ public class EvidenceController {
         this.rateLimit = rateLimit;
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> upload(@AuthenticationPrincipal UserPrincipal principal,
                                        @PathVariable UUID caseId, @RequestParam("file") MultipartFile file,
                                        HttpServletRequest request) throws Exception {

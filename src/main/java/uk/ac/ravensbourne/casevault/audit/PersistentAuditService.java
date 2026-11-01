@@ -2,24 +2,31 @@ package uk.ac.ravensbourne.casevault.audit;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.ac.ravensbourne.casevault.security.UserPrincipal;
 
 /**
  * Appends metadata-only events protected by an HMAC-SHA256 chain (CWE-345, CWE-778).
- * A one-row `audit_chain_head` is locked with SELECT FOR UPDATE before an append; this serialises writers
- * across application instances without relying on JVM locking. The HMAC key comes only from configuration.
+ * A one-row {@code audit_chain_head} is locked with {@code SELECT FOR UPDATE} before an append; this
+ * serialises writers across application instances. A fair process-local lock is an additional guard for
+ * H2's test-only locking differences; it is not the cross-instance security boundary. The HMAC key comes
+ * only from configuration.
  */
 @Service
 public class PersistentAuditService implements AuditService {
     private static final Set<String> FORBIDDEN = Set.of("password", "token", "session", "secret", "cookie", "bearer");
+    private static final ReentrantLock APPEND_LOCK = new ReentrantLock(true);
     private final JdbcTemplate jdbc;
     private final byte[] key;
 
@@ -40,18 +47,49 @@ public class PersistentAuditService implements AuditService {
     }
 
     private void append(UserPrincipal actor, String action, String targetType, UUID targetId, String outcome, String details) {
-        validateMetadata(action, targetType, details);
-        Map<String, Object> head = jdbc.queryForMap("SELECT last_event_id, last_hash FROM audit_chain_head WHERE singleton = TRUE FOR UPDATE");
-        String previous = (String) head.get("last_hash");
-        Instant timestamp = Instant.now();
-        UUID correlation = UUID.randomUUID();
-        String safeDetails = "{\"event\":\"" + details + "\"}";
-        String canonical = canonical(timestamp, actor, action, targetType, targetId, outcome, correlation, safeDetails, previous);
-        String hash = hmac(canonical);
-        jdbc.update("INSERT INTO audit_events (ts,actor_id,actor_role,action,target_type,target_id,outcome,correlation_id,details_json,prev_hash,hash) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                timestamp, actor == null ? null : actor.id(), actor == null ? null : actor.role(), action, targetType, targetId, outcome, correlation, safeDetails, previous, hash);
-        Long eventId = jdbc.queryForObject("SELECT MAX(id) FROM audit_events", Long.class);
-        jdbc.update("UPDATE audit_chain_head SET last_event_id=?, last_hash=? WHERE singleton=TRUE", eventId, hash);
+        APPEND_LOCK.lock();
+        try {
+            validateMetadata(action, targetType, details);
+            // This row lock is obtained inside the transaction opened on record()/recordDenied(), before
+            // reading the previous hash. PostgreSQL therefore serialises appends across application nodes.
+            Map<String, Object> head = jdbc.queryForMap("SELECT last_event_id, last_hash FROM audit_chain_head WHERE singleton = TRUE FOR UPDATE");
+            String previous = (String) head.get("last_hash");
+            Instant timestamp = Instant.now();
+            UUID correlation = UUID.randomUUID();
+            String safeDetails = "{\"event\":\"" + details + "\"}";
+            String canonical = canonical(timestamp, actor, action, targetType, targetId, outcome, correlation, safeDetails, previous);
+            String hash = hmac(canonical);
+            GeneratedKeyHolder keys = new GeneratedKeyHolder();
+            jdbc.update(connection -> {
+                PreparedStatement statement = connection.prepareStatement(
+                        "INSERT INTO audit_events (ts,actor_id,actor_role,action,target_type,target_id,outcome,correlation_id,details_json,prev_hash,hash) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                        Statement.RETURN_GENERATED_KEYS);
+                statement.setObject(1, timestamp);
+                statement.setObject(2, actor == null ? null : actor.id());
+                statement.setString(3, actor == null ? null : actor.role());
+                statement.setString(4, action);
+                statement.setString(5, targetType);
+                statement.setObject(6, targetId);
+                statement.setString(7, outcome);
+                statement.setObject(8, correlation);
+                statement.setString(9, safeDetails);
+                statement.setString(10, previous);
+                statement.setString(11, hash);
+                return statement;
+            }, keys);
+            Number eventId = keys.getKeys().entrySet().stream()
+                    .filter(entry -> "id".equalsIgnoreCase(entry.getKey()))
+                    .map(Map.Entry::getValue)
+                    .filter(Number.class::isInstance)
+                    .map(Number.class::cast)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Audit insert did not return an event id"));
+            if (jdbc.update("UPDATE audit_chain_head SET last_event_id=?, last_hash=? WHERE singleton=TRUE", eventId.longValue(), hash) != 1) {
+                throw new IllegalStateException("Audit chain head is missing");
+            }
+        } finally {
+            APPEND_LOCK.unlock();
+        }
     }
 
     @Transactional(readOnly = true)

@@ -1,8 +1,12 @@
 package uk.ac.ravensbourne.casevault.web;
 
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -38,13 +42,40 @@ public class CaseController {
     }
 
     @GetMapping("/new") @PreAuthorize("hasRole('CLIENT_USER')")
-    String createForm() { return "case-form"; }
+    String createForm(Model model) {
+        return caseForm(model, new CreateCaseRequest("", "", null, null), Map.of());
+    }
 
     @PostMapping @PreAuthorize("hasRole('CLIENT_USER')")
-    String create(@AuthenticationPrincipal UserPrincipal principal, @Valid @ModelAttribute CreateCaseRequest request,
-                  BindingResult errors) {
-        if (errors.hasErrors()) return "case-form";
+    String create(@AuthenticationPrincipal UserPrincipal principal,
+                  @Valid @ModelAttribute("caseForm") CreateCaseRequest request, BindingResult errors,
+                  Model model, HttpServletResponse response) {
+        if (errors.hasErrors()) {
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            return caseForm(model, request, safeFieldErrors(errors));
+        }
         return "redirect:/cases/" + management.create(principal, request).getId();
+    }
+
+    private String caseForm(Model model, CreateCaseRequest request, Map<String, String> fieldErrors) {
+        model.addAttribute("caseForm", request);
+        model.addAttribute("categories", Category.values());
+        model.addAttribute("severities", Severity.values());
+        model.addAttribute("fieldErrors", fieldErrors);
+        return "case-form";
+    }
+
+    /** Maps binding errors to stable, non-sensitive messages rather than exposing conversion internals. */
+    private Map<String, String> safeFieldErrors(BindingResult errors) {
+        Map<String, String> result = new LinkedHashMap<>();
+        errors.getFieldErrors().forEach(error -> result.putIfAbsent(error.getField(), switch (error.getField()) {
+            case "title" -> "Enter a title between 5 and 120 characters.";
+            case "description" -> "Enter a description of no more than 5000 characters.";
+            case "category" -> "Choose a valid category.";
+            case "severity" -> "Choose a valid severity.";
+            default -> "Enter a valid value.";
+        }));
+        return result;
     }
 
     @GetMapping
