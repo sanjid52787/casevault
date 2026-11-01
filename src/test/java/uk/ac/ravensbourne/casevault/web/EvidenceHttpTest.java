@@ -51,6 +51,7 @@ class EvidenceHttpTest {
     @Autowired UserAccountRepository users;
     @Autowired CaseRepository cases;
     @Autowired JdbcTemplate jdbc;
+    @Autowired TestDataCleaner cleaner;
 
     private UserAccount clientA;
     private UserAccount clientB;
@@ -62,7 +63,7 @@ class EvidenceHttpTest {
     void setUp() throws Exception {
         jdbc.update("DELETE FROM audit_events");
         jdbc.update("UPDATE audit_chain_head SET last_event_id=NULL,last_hash=NULL WHERE singleton=TRUE");
-        TestDataCleaner.clean(jdbc);
+        cleaner.clean();
         Files.createDirectories(EVIDENCE_ROOT);
         try (var paths = Files.list(EVIDENCE_ROOT)) {
             for (Path path : paths.toList()) Files.deleteIfExists(path);
@@ -80,7 +81,7 @@ class EvidenceHttpTest {
     }
 
     @AfterEach
-    void cleanFixtures() { TestDataCleaner.clean(jdbc); }
+    void cleanFixtures() { cleaner.clean(); }
 
     @Test
     void tFile009CrossTenantDownloadReturns404() throws Exception {

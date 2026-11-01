@@ -48,6 +48,7 @@ class CaseSecurityHardeningTest {
     @Autowired UserAccountRepository users;
     @Autowired CaseRepository cases;
     @Autowired CaseWorkflowService workflow;
+    @Autowired TestDataCleaner cleaner;
 
     private Organisation clientOrganisation;
     private UserAccount client;
@@ -59,7 +60,7 @@ class CaseSecurityHardeningTest {
     void setUp() {
         jdbc.update("DELETE FROM audit_events");
         jdbc.update("UPDATE audit_chain_head SET last_event_id=NULL,last_hash=NULL WHERE singleton=TRUE");
-        TestDataCleaner.clean(jdbc);
+        cleaner.clean();
         clientOrganisation = organisations.save(new Organisation(UUID.randomUUID(), "Client Organisation"));
         Organisation otherOrganisation = organisations.save(new Organisation(UUID.randomUUID(), "Other Organisation"));
         Organisation internal = organisations.save(new Organisation(UUID.randomUUID(), "Internal Organisation"));
@@ -77,7 +78,7 @@ class CaseSecurityHardeningTest {
     }
 
     @AfterEach
-    void cleanFixtures() { TestDataCleaner.clean(jdbc); }
+    void cleanFixtures() { cleaner.clean(); }
 
     @Test
     void tXss001StoredTitleNoteAndSearchTermAreEscapedInResponses() throws Exception {

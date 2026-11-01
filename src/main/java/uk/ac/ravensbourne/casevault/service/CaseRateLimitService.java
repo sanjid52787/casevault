@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.springframework.stereotype.Service;
+import uk.ac.ravensbourne.casevault.common.TestOnly;
 import uk.ac.ravensbourne.casevault.audit.AuditEventType;
 import uk.ac.ravensbourne.casevault.audit.AuditService;
 import uk.ac.ravensbourne.casevault.security.UserPrincipal;
@@ -28,11 +29,18 @@ public class CaseRateLimitService {
     }
 
     public void checkSearch(UserPrincipal principal, String sourceIp) {
-        check("search", "SEARCH", principal, sourceIp, null, 3, 20);
+        check("search", "SEARCH", principal, sourceIp, null, 3, 5);
     }
 
     public void checkReportGeneration(UserPrincipal principal, String sourceIp, UUID caseId) {
         check("report-generation", "REPORT", principal, sourceIp, caseId, 2, 20);
+    }
+
+    /** Clears in-memory state between tests; production callers are blocked by an architecture rule. */
+    @TestOnly
+    public void reset() {
+        buckets.clear();
+        denialAuditBuckets.clear();
     }
 
     private void check(String operation, String targetType, UserPrincipal principal, String sourceIp, UUID targetId,

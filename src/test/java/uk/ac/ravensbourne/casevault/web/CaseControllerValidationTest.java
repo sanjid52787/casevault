@@ -36,19 +36,20 @@ class CaseControllerValidationTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired OrganisationRepository organisations;
     @Autowired UserAccountRepository users;
+    @Autowired TestDataCleaner cleaner;
     private UserAccount client;
 
     @BeforeEach
     void setUp() {
         jdbc.update("DELETE FROM audit_events");
         jdbc.update("UPDATE audit_chain_head SET last_event_id=NULL,last_hash=NULL WHERE singleton=TRUE");
-        TestDataCleaner.clean(jdbc);
+        cleaner.clean();
         Organisation organisation = organisations.save(new Organisation(UUID.randomUUID(), "Validation Client"));
         client = users.save(new UserAccount(UUID.randomUUID(), organisation, "validation-client@test", "hash", Role.CLIENT_USER));
     }
 
     @AfterEach
-    void cleanFixtures() { TestDataCleaner.clean(jdbc); }
+    void cleanFixtures() { cleaner.clean(); }
 
     @Test
     void tCase006InvalidTitleShowsEscapedValidationMessage() throws Exception {

@@ -43,13 +43,14 @@ class LoginRedirectAndCsrfTest {
     @Autowired OrganisationRepository organisations;
     @Autowired UserAccountRepository users;
     @Autowired PasswordEncoder encoder;
+    @Autowired TestDataCleaner cleaner;
     private UserAccount user;
 
     @BeforeEach
     void setUp() {
         jdbc.update("DELETE FROM SPRING_SESSION_ATTRIBUTES");
         jdbc.update("DELETE FROM SPRING_SESSION");
-        TestDataCleaner.clean(jdbc);
+        cleaner.clean();
         Organisation organisation = organisations.save(new Organisation(UUID.randomUUID(), "Redirect Test Organisation"));
         user = users.save(new UserAccount(UUID.randomUUID(), organisation, "redirect@example.test",
                 encoder.encode("correct horse battery staple"), Role.CLIENT_USER));
@@ -59,7 +60,7 @@ class LoginRedirectAndCsrfTest {
     void cleanUp() {
         jdbc.update("DELETE FROM SPRING_SESSION_ATTRIBUTES");
         jdbc.update("DELETE FROM SPRING_SESSION");
-        TestDataCleaner.clean(jdbc);
+        cleaner.clean();
     }
 
     @Test

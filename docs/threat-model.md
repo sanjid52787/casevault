@@ -39,6 +39,10 @@ Evidence upload currently reads a file into memory after the multipart size chec
 
 `NoOpScanService` accepts synthetic academic evidence only; it is an integration seam, not anti-malware protection. Archives are blocked by the extension allow-list, so archive/zip bombs are outside current scope.
 
+## Rate-limiting residual risk
+
+Per-IP rate limits reduce automated abuse but can penalise legitimate users behind a shared NAT, VPN gateway or institutional proxy because they consume one shared bucket. In a reverse-proxy deployment, the application must derive a client IP only from a trusted proxy configuration; accepting an arbitrary client-supplied `X-Forwarded-For` header would allow an attacker to spoof the bucket key and bypass the quota. Proxy trust boundaries and forwarding configuration therefore remain an operational responsibility.
+
 ## Assumptions and out of scope
 
 Production uses PostgreSQL. H2 is test-only and has different locking semantics; the audit service has an extra in-process guard for H2, while PostgreSQL `SELECT ... FOR UPDATE` remains the cross-instance lock. Host OS/hypervisor compromise, physical theft, nation-state attackers, volumetric DDoS, backup governance and external AV operation are not eliminated by this application.

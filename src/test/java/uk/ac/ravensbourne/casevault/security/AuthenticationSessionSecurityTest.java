@@ -49,16 +49,17 @@ class AuthenticationSessionSecurityTest {
     @Autowired Environment environment;
     @Autowired FindByIndexNameSessionRepository<?> sessionRepository;
     @Autowired DisabledAccountSessionFilter disabledAccountSessionFilter;
+    @Autowired TestDataCleaner cleaner;
     private UserAccount user;
 
     @BeforeEach void seed() {
         jdbc.update("DELETE FROM SPRING_SESSION_ATTRIBUTES"); jdbc.update("DELETE FROM SPRING_SESSION");
         jdbc.update("DELETE FROM audit_events"); jdbc.update("UPDATE audit_chain_head SET last_event_id=NULL,last_hash=NULL WHERE singleton=TRUE");
-        TestDataCleaner.clean(jdbc);
+        cleaner.clean();
         var org=orgs.save(new Organisation(UUID.randomUUID(),"Auth Test Org"));
         user=users.save(new UserAccount(UUID.randomUUID(),org,"user@example.test",encoder.encode("correct horse battery staple"),Role.CLIENT_USER));
     }
-    @AfterEach void cleanFixtures() { TestDataCleaner.clean(jdbc); }
+    @AfterEach void cleanFixtures() { cleaner.clean(); }
     private Authentication token(String password){return UsernamePasswordAuthenticationToken.unauthenticated("user@example.test",password);}
     @Test void tAuth001LoginSuccess(){assertTrue(provider.authenticate(token("correct horse battery staple")).isAuthenticated());}
     @Test void tAuth002WrongPasswordGenericError(){assertThrows(BadCredentialsException.class,()->provider.authenticate(token("wrong password")));}

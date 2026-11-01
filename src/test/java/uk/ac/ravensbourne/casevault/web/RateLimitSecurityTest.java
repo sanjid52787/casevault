@@ -43,6 +43,7 @@ class RateLimitSecurityTest {
     @Autowired OrganisationRepository organisations;
     @Autowired UserAccountRepository users;
     @Autowired CaseRepository cases;
+    @Autowired TestDataCleaner cleaner;
     private UserAccount clientA;
     private UserAccount clientB;
     private UserAccount analyst;
@@ -53,7 +54,7 @@ class RateLimitSecurityTest {
     void setUp() {
         jdbc.update("DELETE FROM audit_events");
         jdbc.update("UPDATE audit_chain_head SET last_event_id=NULL,last_hash=NULL WHERE singleton=TRUE");
-        TestDataCleaner.clean(jdbc);
+        cleaner.clean();
         Organisation clientOrgA = organisations.save(new Organisation(UUID.randomUUID(), "Rate Client A"));
         Organisation clientOrgB = organisations.save(new Organisation(UUID.randomUUID(), "Rate Client B"));
         Organisation internal = organisations.save(new Organisation(UUID.randomUUID(), "Rate Internal"));
@@ -68,15 +69,15 @@ class RateLimitSecurityTest {
     }
 
     @AfterEach
-    void cleanFixtures() { TestDataCleaner.clean(jdbc); }
+    void cleanFixtures() { cleaner.clean(); }
 
     @Test
     void tRate001SearchLimitReturns429WithRetryAfter() throws Exception {
         for (int count = 0; count < 3; count++) {
-            mvc.perform(get("/cases").with(authentication(auth(clientA))))
+            search(clientA, "203.0.113.10")
                     .andExpect(status().isOk());
         }
-        mvc.perform(get("/cases").with(authentication(auth(clientA))))
+        search(clientA, "203.0.113.10")
                 .andExpect(status().isTooManyRequests())
                 .andExpect(header().exists("Retry-After"))
                 .andExpect(header().exists("X-Correlation-ID"))
@@ -86,10 +87,12 @@ class RateLimitSecurityTest {
     @Test
     void tRate002ReportGenerationLimitReturns429() throws Exception {
         for (int count = 0; count < 2; count++) {
-            mvc.perform(post("/cases/{caseId}/reports", caseRecord.getId()).with(authentication(auth(analyst))).with(csrf()))
+            mvc.perform(post("/cases/{caseId}/reports", caseRecord.getId()).with(authentication(auth(analyst))).with(csrf())
+                            .with(request -> { request.setRemoteAddr("203.0.113.11"); return request; }))
                     .andExpect(status().isCreated());
         }
-        mvc.perform(post("/cases/{caseId}/reports", caseRecord.getId()).with(authentication(auth(analyst))).with(csrf()))
+        mvc.perform(post("/cases/{caseId}/reports", caseRecord.getId()).with(authentication(auth(analyst))).with(csrf())
+                        .with(request -> { request.setRemoteAddr("203.0.113.11"); return request; }))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(header().exists("Retry-After"))
                 .andExpect(header().exists("X-Correlation-ID"))
@@ -99,16 +102,16 @@ class RateLimitSecurityTest {
     @Test
     void tRate003LimitsArePerUser() throws Exception {
         for (int count = 0; count < 3; count++) {
-            mvc.perform(get("/cases").with(authentication(auth(clientA)))).andExpect(status().isOk());
+            search(clientA, "203.0.113.12").andExpect(status().isOk());
         }
-        mvc.perform(get("/cases").with(authentication(auth(clientA)))).andExpect(status().isTooManyRequests());
-        mvc.perform(get("/cases").with(authentication(auth(clientB)))).andExpect(status().isOk());
+        search(clientA, "203.0.113.12").andExpect(status().isTooManyRequests());
+        search(clientB, "203.0.113.12").andExpect(status().isOk());
     }
 
     @Test
     void tRate004DenialAuditIsAggregatedPerWindow() throws Exception {
         for (int count = 0; count < 6; count++) {
-            mvc.perform(get("/cases").with(authentication(auth(clientA))));
+            search(clientA, "203.0.113.13");
         }
         assertEquals(1, jdbc.queryForObject(
                 "SELECT COUNT(*) FROM audit_events WHERE action='RATE_LIMITED' AND target_type='SEARCH'", Integer.class));
@@ -121,5 +124,10 @@ class RateLimitSecurityTest {
     private UsernamePasswordAuthenticationToken auth(UserAccount user) {
         UserPrincipal principal = UserPrincipal.from(user);
         return UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities());
+    }
+
+    private org.springframework.test.web.servlet.ResultActions search(UserAccount user, String ip) throws Exception {
+        return mvc.perform(get("/cases").with(authentication(auth(user)))
+                .with(request -> { request.setRemoteAddr(ip); return request; }));
     }
 }

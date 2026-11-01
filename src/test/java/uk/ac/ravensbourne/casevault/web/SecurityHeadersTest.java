@@ -53,6 +53,7 @@ class SecurityHeadersTest {
     @Autowired OrganisationRepository organisations;
     @Autowired UserAccountRepository users;
     @Autowired CaseRepository cases;
+    @Autowired TestDataCleaner cleaner;
 
     private UserAccount client;
     private UserAccount auditor;
@@ -60,7 +61,7 @@ class SecurityHeadersTest {
 
     @BeforeEach
     void setUp() {
-        TestDataCleaner.clean(jdbc);
+        cleaner.clean();
         Organisation clientOrganisation = organisations.save(new Organisation(UUID.randomUUID(), "Header Client"));
         Organisation internalOrganisation = organisations.save(new Organisation(UUID.randomUUID(), "Header Internal"));
         client = users.save(new UserAccount(UUID.randomUUID(), clientOrganisation, "headers-client@example.test",
@@ -73,13 +74,14 @@ class SecurityHeadersTest {
 
     @AfterEach
     void cleanUp() {
-        TestDataCleaner.clean(jdbc);
+        cleaner.clean();
     }
 
     @Test
     void tHdr001NonceCspAndBrowserHeadersOnKeyRoutes() throws Exception {
         assertStrictCsp(mvc.perform(get("/login")));
-        assertStrictCsp(mvc.perform(get("/cases").with(authentication(auth(client)))));
+        assertStrictCsp(mvc.perform(get("/cases").with(authentication(auth(client)))
+                .with(request -> { request.setRemoteAddr("203.0.113.20"); return request; })));
         assertStrictCsp(mvc.perform(get("/cases/{id}", caseRecord.getId()).with(authentication(auth(client)))));
         assertStrictCsp(mvc.perform(get("/admin/health").with(authentication(auth(auditor)))));
     }

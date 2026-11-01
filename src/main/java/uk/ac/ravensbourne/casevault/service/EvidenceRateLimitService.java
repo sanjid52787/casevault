@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.springframework.stereotype.Service;
+import uk.ac.ravensbourne.casevault.common.TestOnly;
 import uk.ac.ravensbourne.casevault.audit.AuditService;
 import uk.ac.ravensbourne.casevault.security.UserPrincipal;
 
@@ -32,6 +33,13 @@ public class EvidenceRateLimitService {
 
     public void checkDownload(UserPrincipal principal, String sourceIp, UUID caseId) {
         check("download", principal, sourceIp, caseId, 30, 60);
+    }
+
+    /** Clears in-memory state between tests; production callers are blocked by an architecture rule. */
+    @TestOnly
+    public void reset() {
+        buckets.clear();
+        denialAuditBuckets.clear();
     }
 
     private void check(String operation, UserPrincipal principal, String sourceIp, UUID caseId,
