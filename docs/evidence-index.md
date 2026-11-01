@@ -1,22 +1,35 @@
 # Evidence index
 
-`Done` means a named automated test class exists and has been run during local development. `Planned` means the corresponding control or end-to-end evidence is not established by a named current test. Test reports are written under `target/surefire-reports/` and are not committed.
+`Done` means the named source test exists and its latest local Surefire report records zero failures and zero errors. The reports under `target/surefire-reports/` are local evidence and are not committed. `Planned` means there is no named automated test for the stated requirement; it is a gap, not a claim that the control is absent.
 
 | Claim ID | Claim | Commit | Issue | Test ID | Tool output path | Status |
 |---|---|---|---|---|---|---|
-| SR-AUTH | Argon2id passwords, generic login failures, lockout and abuse controls | Pending docs commit | TODO | T-AUTH-001..010 | `AuthenticationSessionSecurityTest.txt` | Done |
-| SR-SESS | JDBC sessions, fixation protection, timeout, revocation and secure cookie flags | Pending docs commit | TODO | T-SESS-001..003 | `AuthenticationSessionSecurityTest.txt` | Done |
-| SR-AUTHZ | Role/tenant/assignment checks and IDOR 404 responses | Pending docs commit | TODO | T-AUTHZ-001; T-AUTHZ-IDOR-001..007 | `AuthorisationHttpMatrixTest.txt` | Done |
-| SR-AUTHZ-ARCH | Controllers do not access repositories directly | Pending docs commit | TODO | T-AUTHZ-ARCH-001 | `ArchitectureRulesTest.txt` | Done |
-| SR-VAL | DTO validation, form binding, mass-assignment resistance and scoped queries | Pending docs commit | TODO | T-CASE-003..007; T-INJ-001..002 | `CaseSecurityHardeningTest.txt`; `CaseControllerValidationTest.txt` | Done |
-| SR-XSS | Case/search/report output encoding | Pending docs commit | TODO | T-XSS-001; T-REPORT-002 | `CaseSecurityHardeningTest.txt`; `ReportSecurityTest.txt` | Done |
-| SR-FILE | Evidence validation, encrypted storage, integrity and safe downloads | Pending docs commit | TODO | T-FILE-001..013 | `EvidenceSecurityTest.txt`; `EvidenceHttpTest.txt` | Done |
-| SR-CRYPTO | Ephemeral test Tink keysets and keyset separation | Pending docs commit | TODO | T-CRYPTO-001..002 | `TinkKeysetProviderTest.txt` | Done |
-| SR-AUDIT | HMAC-SHA256 chain, tamper detection and serialised concurrent appends | Pending docs commit | TODO | T-AUDIT-001..005 | `PersistentAuditServiceTest.txt`; `AuditServiceTest.txt` | Done |
-| SR-ERR/LOG | Generic correlated errors and CR/LF-safe logging | Pending docs commit | TODO | T-ERR-001..002; T-LOG-001..002 | `AdminSecurityTest.txt`; `LogSanitizerTest.txt` | Done |
-| SR-ADMIN | Auditor-only account administration without case-content access | Pending docs commit | TODO | T-ADMIN-001..005 | `AdminSecurityTest.txt` | Done |
-| SR-REPORT | Versioned reports, SoD, redaction and content access controls | Pending docs commit | TODO | T-REPORT-001..008 | `ReportSecurityTest.txt`; `ReportServiceTest.txt` | Done |
-| SR-RATE | Login, evidence, search and report-generation quotas | Pending docs commit | TODO | T-RATE-001..004; T-FILE-013 | `RateLimitSecurityTest.txt`; `EvidenceHttpTest.txt`; `AuthenticationSessionSecurityTest.txt` | Done |
-| SR-HDR | Nonce CSP and defensive response headers | Pending docs commit | TODO | T-HDR-001..002; T-CORS-001 | `SecurityHeadersTest.txt` | Done |
-| SR-RET | Scheduled retention purge | TODO | TODO | none | none | Planned |
-| SR-SUPPLY/DEPLOY | SBOM/scanning and deployment hardening assurance | TODO | TODO | none | none | Planned |
+| SR-REPORT | Generated report redacts email addresses, IPv4 addresses and API-key-like values. | Pending docs commit | TODO | T-REPORT-001 | `target/surefire-reports/uk.ac.ravensbourne.casevault.report.ReportSecurityTest.txt` | Done |
+| SR-REPORT | Report injection payloads are escaped. | Pending docs commit | TODO | T-REPORT-002 | `target/surefire-reports/uk.ac.ravensbourne.casevault.report.ReportSecurityTest.txt` | Done |
+| SR-REPORT | Internal-only notes and internal identities are excluded from reports. | Pending docs commit | TODO | T-REPORT-003 | `target/surefire-reports/uk.ac.ravensbourne.casevault.report.ReportSecurityTest.txt` | Done |
+| SR-REPORT | A manager cannot approve a report they generated. | Pending docs commit | TODO | T-REPORT-004 | `target/surefire-reports/uk.ac.ravensbourne.casevault.report.ReportSecurityTest.txt` | Done |
+| SR-REPORT | Clients can retrieve only approved reports. | Pending docs commit | TODO | T-REPORT-005 | `target/surefire-reports/uk.ac.ravensbourne.casevault.report.ReportSecurityTest.txt` | Done |
+| SR-REPORT | A client from another organisation receives not-found for a report. | Pending docs commit | TODO | T-REPORT-006 | `target/surefire-reports/uk.ac.ravensbourne.casevault.report.ReportSecurityTest.txt` | Done |
+| SR-REPORT | AUDITOR_ADMIN cannot retrieve report content. | Pending docs commit | TODO | T-REPORT-007 | `target/surefire-reports/uk.ac.ravensbourne.casevault.report.ReportSecurityTest.txt` | Done |
+| SR-REPORT/AUDIT | Report generation, submission, approval and download are audit events. | Pending docs commit | TODO | T-REPORT-008 | `target/surefire-reports/uk.ac.ravensbourne.casevault.report.ReportSecurityTest.txt` | Done |
+| SR-RATE | The case search/list quota returns HTTP 429 with `Retry-After`. | Pending docs commit | TODO | T-RATE-001 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.RateLimitSecurityTest.txt` | Done |
+| SR-RATE | The report-generation quota returns HTTP 429 with `Retry-After`. | Pending docs commit | TODO | T-RATE-002 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.RateLimitSecurityTest.txt` | Done |
+| SR-RATE | Search/list quotas are independent for different users. | Pending docs commit | TODO | T-RATE-003 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.RateLimitSecurityTest.txt` | Done |
+| SR-RATE/AUDIT | Repeated rate-limit denials produce one aggregated audit event per window. | Pending docs commit | TODO | T-RATE-004 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.RateLimitSecurityTest.txt` | Done |
+| SR-AUTH | Post-login redirects accept only same-origin relative paths. | Pending docs commit | TODO | T-REDIR-001 | `target/surefire-reports/uk.ac.ravensbourne.casevault.security.LoginRedirectAndCsrfTest.txt` | Done |
+| SR-CSRF | A state-changing request without a CSRF token is rejected. | Pending docs commit | TODO | T-CSRF-001 | `target/surefire-reports/uk.ac.ravensbourne.casevault.security.LoginRedirectAndCsrfTest.txt` | Done |
+| SR-CSRF | A CSRF token from another session is rejected. | Pending docs commit | TODO | T-CSRF-002 | `target/surefire-reports/uk.ac.ravensbourne.casevault.security.LoginRedirectAndCsrfTest.txt` | Done |
+| SR-VAL | An invalid case title returns a safe validation response. | Pending docs commit | TODO | T-CASE-006 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.CaseControllerValidationTest.txt` | Done |
+| SR-VAL | An unknown case enum value returns a safe validation response. | Pending docs commit | TODO | T-CASE-007 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.CaseControllerValidationTest.txt` | Done |
+| SR-ERR | 400, 404, 405 and 415 responses are generic and correlated. | Pending docs commit | TODO | T-ERR-002 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.AdminSecurityTest.txt` | Done |
+| SR-ADMIN | Evidence-storage health probe reports writable storage, unusable storage and auditor-only access without path disclosure. | Pending docs commit | TODO | T-ADMIN-006 | `target/surefire-reports/uk.ac.ravensbourne.casevault.storage.AdminHealthStorageProbeTest.txt` | Done |
+| SR-HDR | Key routes receive a nonce CSP with neither `unsafe-inline` nor `unsafe-eval`. | Pending docs commit | TODO | T-HDR-001 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.SecurityHeadersTest.txt` | Done |
+| SR-HDR/XSS | Templates and static JavaScript contain no prohibited unsafe client-side sinks or inline script/style without a nonce. | Pending docs commit | TODO | T-HDR-002 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.SecurityHeadersTest.txt` | Done |
+| SR-CORS | A cross-origin CORS preflight is refused. | Pending docs commit | TODO | T-CORS-001 | `target/surefire-reports/uk.ac.ravensbourne.casevault.web.SecurityHeadersTest.txt` | Done |
+| SR-REPORT | Report controller rendering/download response headers are exercised end-to-end with MockMvc. | TODO | TODO | none | none | Planned — gap |
+| SR-RATE | Per-IP search and report-generation quotas are independently exercised. | TODO | TODO | none | none | Planned — gap |
+| SR-ADMIN | The health page itself is exercised while a probe failure is injected, confirming it renders `FAIL`. | TODO | TODO | none | none | Planned — gap |
+| SR-HDR | HSTS is exercised under the `prod` profile. | TODO | TODO | none | none | Planned — gap |
+| SR-CSRF | Every state-changing endpoint is covered by an endpoint-specific CSRF regression test. | TODO | TODO | none | none | Planned — gap |
+| SR-RET | Scheduled retention purge is covered. | TODO | TODO | none | none | Planned — gap |
+| SR-SUPPLY/DEPLOY | SBOM/scanning and deployment-hardening assurance are covered. | TODO | TODO | none | none | Planned — gap |

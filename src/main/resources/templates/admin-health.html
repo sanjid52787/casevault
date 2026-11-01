@@ -1,0 +1,14 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<main>
+    <h1>System health</h1>
+    <dl>
+        <dt>Application</dt><dd>OK</dd>
+        <dt>Database</dt><dd>OK</dd>
+        <dt>Audit</dt><dd>OK</dd>
+        <dt>Evidence storage</dt><dd th:text="${storageStatus}">FAIL</dd>
+    </dl>
+</main>
+</body>
+</html>
