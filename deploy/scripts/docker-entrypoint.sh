@@ -20,4 +20,7 @@ export CASEVAULT_SECRETS_TINK_KEYSET_PATH="$TINK_KEYSET_PATH"
 export CASEVAULT_SECRETS_AUDIT_HMAC_KEY="$AUDIT_HMAC_KEY"
 export CASEVAULT_SECRETS_SESSION_SECRET="$(read_secret "${SESSION_SECRET_FILE:-/run/secrets/casevault_session_secret}")"
 
-exec java ${JAVA_TOOL_OPTIONS:-} org.springframework.boot.loader.launch.JarLauncher
+# Spring Boot's tools-mode extraction retains the executable application JAR alongside
+# dependency layers. Launch that supported executable entrypoint rather than assuming a
+# JarLauncher class is present as a loose class file.
+exec java ${JAVA_TOOL_OPTIONS:-} -jar /opt/casevault/casevault-0.0.1-SNAPSHOT.jar

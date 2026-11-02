@@ -13,5 +13,7 @@ secrets/
 *.class
 *.log
 docs/assurance/results/
+scratch/
+backups/
 .env
 .AGENTS.md

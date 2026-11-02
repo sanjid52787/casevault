@@ -40,6 +40,12 @@ $random.GetBytes($bytes)
 $random.Dispose()
 $env:AUDIT_HMAC_KEY = [Convert]::ToBase64String($bytes)
 
+$keysetPath = Join-Path $PSScriptRoot '..\target\dev-tink-keyset.json'
+if (-not (Test-Path $keysetPath)) {
+    & "$PSScriptRoot\..\mvnw.cmd" '-Dexec.mainClass=uk.ac.ravensbourne.casevault.crypto.DevTinkKeysetGenerator' "-Dexec.args=$keysetPath" exec:java
+}
+$env:TINK_KEYSET_PATH = (Resolve-Path $keysetPath).Path
+
 Write-Host 'Starting CaseVault at http://localhost:8080/login'
 Write-Host 'Copy the DEV ONLY email/password pair printed after startup.'
 & "$PSScriptRoot\..\mvnw.cmd" spring-boot:run

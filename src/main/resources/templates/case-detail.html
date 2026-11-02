@@ -120,6 +120,68 @@
         </ul>
         <p class="empty" th:if="${actions.empty}">No remediation actions yet.</p>
     </section>
+
+    <section class="card" th:if="${permissions.canUploadEvidence}">
+        <h2>Evidence upload</h2>
+        <p class="subtitle">Upload only approved, synthetic evidence types. Files are validated and encrypted before storage.</p>
+        <form th:action="@{/cases/{caseId}/evidence/upload(caseId=${caseRecord.id})}" method="post" enctype="multipart/form-data">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <label>Evidence file
+                <input type="file" name="file" accept=".txt,.log,.csv,.pdf,.png,.jpg,.jpeg,.json" required>
+            </label>
+            <button type="submit">Upload evidence</button>
+        </form>
+    </section>
+
+    <section class="card" th:if="${permissions.canDownloadEvidence}">
+        <h2>Evidence files</h2>
+        <ul class="record-list" th:if="${!evidenceFiles.empty}">
+            <li class="file-row" th:each="evidence : ${evidenceFiles}">
+                <div>
+                    <strong th:text="${evidence.name}">Evidence file</strong>
+                    <div style="font-size: 0.82rem; color: var(--muted); margin-top: 4px;">
+                        <span th:text="${evidence.size} + ' bytes'">0 bytes</span> &bull;
+                        <span>SHA-256: <code style="font-size: 0.75rem; background: #e2e8f0; padding: 2px 4px; border-radius: 4px;" th:text="${evidence.sha256}">hash</code></span> &bull;
+                        <span th:if="${evidence.encrypted}">AES-GCM Encrypted</span>
+                    </div>
+                </div>
+                <a class="button secondary" th:href="@{/cases/{caseId}/evidence/{evidenceId}(caseId=${caseRecord.id},evidenceId=${evidence.id})}">Download</a>
+            </li>
+        </ul>
+        <p class="empty" th:if="${evidenceFiles.empty}">No evidence files are available.</p>
+    </section>
+
+    <section class="card" th:if="${permissions.canGenerateReport}">
+        <h2>Generate report</h2>
+        <p class="subtitle">Creates a new sanitised draft. The generator cannot approve their own report.</p>
+        <form th:action="@{/cases/{caseId}/reports/_ui/generate(caseId=${caseRecord.id})}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button type="submit">Generate draft report</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>Case reports</h2>
+        <ul class="record-list" th:if="${!reports.empty}">
+            <li class="file-row" th:each="report : ${reports}">
+                <span>Version <strong th:text="${report.version}">1</strong> <strong th:text="${report.status}">DRAFT</strong></span>
+                <div class="workflow-actions">
+                    <a class="button secondary" th:href="@{/cases/{caseId}/reports/{reportId}(caseId=${caseRecord.id},reportId=${report.id})}">Download</a>
+                    <form th:if="${permissions.canGenerateReport and report.status.name() == 'DRAFT'}"
+                          th:action="@{/cases/{caseId}/reports/_ui/{reportId}/submit(caseId=${caseRecord.id},reportId=${report.id})}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit">Submit</button>
+                    </form>
+                    <form th:if="${permissions.canApproveReports and report.status.name() == 'SUBMITTED'}"
+                          th:action="@{/cases/{caseId}/reports/_ui/{reportId}/approve(caseId=${caseRecord.id},reportId=${report.id})}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit">Approve</button>
+                    </form>
+                </div>
+            </li>
+        </ul>
+        <p class="empty" th:if="${reports.empty}">No reports are available for your role.</p>
+    </section>
 </main>
 </body>
 </html>

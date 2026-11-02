@@ -26,4 +26,4 @@ The historical Gitleaks generic-key alerts were validated as legacy test fixture
 | Dev TLS certificate is self-signed. | Deployment owner | Accepted for localhost only | Use CA-issued certificate outside local demo. |
 | No real malware/AV integration; no archive uploads allowed. | Security owner | Accepted for synthetic assessment scope | Integrate AV service before handling untrusted production files. |
 | DAST, Trivy/Hadolint and restore drill lack local execution evidence if Docker is unavailable. | Release owner | Not accepted for release | Run/retain reports before deployment decision. |
-| Audit filtering is incomplete. | Admin owner | Accepted temporarily | Resolve F-SCR-005 before operational handover. |
+| Audit filtering is complete. | Admin owner | Resolved | F-SCR-005 closed with bound parameters, multi-criteria UI filters, and `tAdmin006AuditFilteringByActionRoleAndOutcome`. |

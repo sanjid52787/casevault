@@ -26,12 +26,14 @@ import uk.ac.ravensbourne.casevault.domain.Category;
 import uk.ac.ravensbourne.casevault.domain.Organisation;
 import uk.ac.ravensbourne.casevault.domain.RemediationAction;
 import uk.ac.ravensbourne.casevault.domain.RemediationStatus;
+import uk.ac.ravensbourne.casevault.domain.ReportRecord;
 import uk.ac.ravensbourne.casevault.domain.Role;
 import uk.ac.ravensbourne.casevault.domain.Severity;
 import uk.ac.ravensbourne.casevault.domain.UserAccount;
 import uk.ac.ravensbourne.casevault.repository.CaseRepository;
 import uk.ac.ravensbourne.casevault.repository.OrganisationRepository;
 import uk.ac.ravensbourne.casevault.repository.RemediationActionRepository;
+import uk.ac.ravensbourne.casevault.repository.ReportRepository;
 import uk.ac.ravensbourne.casevault.repository.UserAccountRepository;
 import uk.ac.ravensbourne.casevault.security.UserPrincipal;
 import uk.ac.ravensbourne.casevault.service.CaseWorkflowService;
@@ -49,6 +51,7 @@ class CaseDetailWorkflowTest {
     @Autowired UserAccountRepository users;
     @Autowired CaseRepository cases;
     @Autowired RemediationActionRepository actions;
+    @Autowired ReportRepository reports;
     @Autowired CaseWorkflowService workflow;
     @Autowired TestDataCleaner cleaner;
 
@@ -173,6 +176,32 @@ class CaseDetailWorkflowTest {
                 .andExpect(content().string(containsString("&lt;script&gt;actionPayload()&lt;/script&gt;")))
                 .andExpect(content().string(not(containsString("<script>notePayload()</script>"))))
                 .andExpect(content().string(not(containsString("<script>actionPayload()</script>"))));
+    }
+
+    /** T-UI-001: browser forms expose only authorised evidence/report workflow actions. */
+    @Test
+    void tUi001EvidenceAndReportWorkflowControlsAreRoleAware() throws Exception {
+        mvc.perform(get("/cases/{id}", caseRecord.getId()).with(authentication(auth(client))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Evidence upload")))
+                .andExpect(content().string(not(containsString("Generate draft report"))));
+
+        mvc.perform(get("/cases/{id}", caseRecord.getId()).with(authentication(auth(analyst))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Evidence upload")))
+                .andExpect(content().string(containsString("Generate draft report")));
+
+        ReportRecord submitted = reports.save(new ReportRecord(UUID.randomUUID(), caseRecord,
+                caseRecord.getOrganisation(), analyst, 1, "Synthetic report"));
+        submitted.submit();
+        reports.save(submitted);
+        mvc.perform(get("/cases/{id}", caseRecord.getId()).with(authentication(auth(manager))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Approve")));
+
+        mvc.perform(post("/cases/{caseId}/reports/_ui/{reportId}/approve", caseRecord.getId(), submitted.getId())
+                        .with(authentication(auth(manager))).with(csrf()))
+                .andExpect(status().is3xxRedirection());
     }
 
     private UserAccount user(Organisation organisation, String email, Role role) {

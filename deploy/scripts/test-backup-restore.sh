@@ -33,7 +33,7 @@ test -s "$backup_dir/audit-event-count.txt"
 app_image="$(docker compose -p "$project" images -q app)"
 test -n "$app_image"
 docker run --rm --network "$restore_network" \
-  -v "$backup_dir/evidence:/var/lib/casevault/evidence:ro" \
+  -v "$backup_dir/evidence:/var/lib/casevault/evidence" \
   -v "$root_dir/secrets/db_password.txt:/run/secrets/casevault_db_password:ro" \
   -v "$root_dir/secrets/migrator_password.txt:/run/secrets/casevault_migrator_password:ro" \
   -v "$root_dir/secrets/audit_hmac_key.txt:/run/secrets/casevault_audit_hmac_key:ro" \

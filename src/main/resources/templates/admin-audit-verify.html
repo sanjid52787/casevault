@@ -1,1 +1,47 @@
-<!doctype html><html xmlns:th="http://www.thymeleaf.org"><body><main><form class="logout-form" th:action="@{/logout}" method="post"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><button type="submit">Sign out</button></form><h1>Audit verification</h1><p th:text="${verification.valid}">result</p></main></body></html>
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Audit Verification | CaseVault</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" th:href="@{/}"><span class="brand-mark">✓</span>CaseVault</a>
+    <nav class="topnav">
+        <a th:href="@{/admin/audit}">Audit</a>
+        <a th:href="@{/admin/accounts}">Accounts</a>
+        <a th:href="@{/admin/health}">Health</a>
+        <a th:href="@{/password/change}">Password</a>
+        <form class="logout-form" th:action="@{/logout}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button type="submit">Sign out</button>
+        </form>
+    </nav>
+</header>
+
+<main class="page">
+    <p class="eyebrow">Cryptographic Integrity Check</p>
+    <h1>Audit verification</h1>
+    <article class="card" style="margin-top:1.5rem; max-width:600px;">
+        <h2>Chain Verification Result</h2>
+        <div style="margin:1rem 0; font-size:1.1rem;">
+            <span>Integrity Status: </span>
+            <strong th:if="${verification.valid}" style="color:#059669;">INTACT &amp; VERIFIED</strong>
+            <strong th:if="${!verification.valid}" style="color:#dc2626;">TAMPER DETECTED</strong>
+        </div>
+        <p style="display:none;" th:text="${verification.valid}">result</p>
+        <p th:if="${verification.valid}" style="color:#4b5563;">
+            Every sequential HMAC-SHA256 hash in the audit chain successfully verified against its predecessor. No tampering, reordering, deletion, or modification was detected.
+        </p>
+        <p th:if="${!verification.valid}" style="color:#dc2626;">
+            A cryptographic mismatch was detected in the HMAC hash chain. First broken event ID: <span th:text="${verification.firstBrokenEventId.orElse(-1)}">-1</span>.
+        </p>
+        <div style="margin-top:1.5rem;">
+            <a th:href="@{/admin/audit}" class="button">Return to Audit Log</a>
+        </div>
+    </article>
+</main>
+</body>
+</html>

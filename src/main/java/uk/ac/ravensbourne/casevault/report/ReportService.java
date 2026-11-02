@@ -1,6 +1,7 @@
 package uk.ac.ravensbourne.casevault.report;
 
 import java.util.UUID;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
@@ -85,6 +86,17 @@ public class ReportService {
         if (!mayDownload(principal, report)) throw new CaseNotFoundException();
         audit.record(principal, AuditEventType.REPORT_DOWNLOADED, "REPORT", reportId, "report-downloaded");
         return report;
+    }
+
+    /** Returns only report metadata/content records the authenticated role may legitimately discover. */
+    @Transactional(readOnly = true) @RequiresCaseAccess
+    public List<ReportRecord> visibleFor(UserPrincipal principal, UUID caseId) {
+        access.requireView(principal, caseId);
+        return reports.findByCaseRecordIdOrderByVersionDesc(caseId).stream()
+                .filter(report -> mayDownload(principal, report)
+                        || (Role.SECURITY_ANALYST.name().equals(principal.role())
+                        && report.getGeneratedBy().getId().equals(principal.id())))
+                .toList();
     }
 
     private void requireGenerator(UserPrincipal principal, CaseRecord caseRecord) {

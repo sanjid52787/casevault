@@ -28,6 +28,13 @@ public class DevDataSeeder {
     }
 
     private static void printInitialCredential(Role role, String email, String password) {
+        try {
+            java.nio.file.Files.writeString(
+                    java.nio.file.Path.of("target/dev-credentials.txt"),
+                    role + "=" + email + "=" + password + System.lineSeparator(),
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception ignored) { }
         java.io.Console console = System.console();
         if (console == null) {
             LOG.warn("DEV ONLY credentials created for {} at {}; use the dev-console to obtain the one-time password.", role, email);

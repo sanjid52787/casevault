@@ -23,7 +23,6 @@ import uk.ac.ravensbourne.casevault.service.CaseManagementService;
 import uk.ac.ravensbourne.casevault.service.CaseRateLimitService;
 import uk.ac.ravensbourne.casevault.service.CaseViewService;
 import uk.ac.ravensbourne.casevault.service.CaseWorkflowService;
-import uk.ac.ravensbourne.casevault.service.ReportApprovalService;
 import uk.ac.ravensbourne.casevault.web.dto.CaseMutationRequests;
 import uk.ac.ravensbourne.casevault.web.dto.CreateCaseRequest;
 
@@ -31,12 +30,12 @@ import uk.ac.ravensbourne.casevault.web.dto.CreateCaseRequest;
 @RequestMapping("/cases")
 public class CaseController {
     private final CaseManagementService management;
-    private final ReportApprovalService reports;
+    private final uk.ac.ravensbourne.casevault.service.ReportApprovalService reports;
     private final CaseWorkflowService workflow;
     private final CaseViewService views;
     private final CaseRateLimitService rateLimits;
 
-    public CaseController(CaseManagementService management, ReportApprovalService reports,
+    public CaseController(CaseManagementService management, uk.ac.ravensbourne.casevault.service.ReportApprovalService reports,
                           CaseWorkflowService workflow, CaseViewService views, CaseRateLimitService rateLimits) {
         this.management = management;
         this.reports = reports;
@@ -102,6 +101,8 @@ public class CaseController {
         model.addAttribute("caseRecord", detail.caseRecord());
         model.addAttribute("notes", detail.notes());
         model.addAttribute("actions", detail.actions());
+        model.addAttribute("evidenceFiles", detail.evidenceFiles());
+        model.addAttribute("reports", detail.reports());
         model.addAttribute("analysts", detail.analysts());
         model.addAttribute("nextStatuses", detail.nextStatuses());
         model.addAttribute("permissions", detail.permissions());

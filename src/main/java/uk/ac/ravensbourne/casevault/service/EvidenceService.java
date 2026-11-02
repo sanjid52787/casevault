@@ -137,6 +137,19 @@ public class EvidenceService {
         }
     }
 
+    /**
+     * Returns evidence metadata only after applying the same object-level download policy as the
+     * binary endpoint. Storage paths and ciphertext are deliberately never exposed to the view.
+     */
+    @RequiresCaseAccess
+    public java.util.List<EvidenceFile> visibleFor(UserPrincipal principal, UUID caseId) {
+        CaseRecord caseRecord = access.requireView(principal, caseId);
+        if (!policy.canDownloadEvidence(principal, caseRecord, cases.existsAssignment(caseId, principal.id()))) {
+            throw new CaseNotFoundException();
+        }
+        return files.findByCaseRecordId(caseId);
+    }
+
     @RequiresCaseAccess
     public byte[] download(UserPrincipal principal, UUID caseId, UUID evidenceId) {
         CaseRecord caseRecord = access.requireView(principal, caseId);
@@ -222,10 +235,14 @@ public class EvidenceService {
     }
 
     /** Applies owner-only permissions when the host filesystem exposes POSIX attributes. */
-    private void setOwnerOnlyPermissions(Path path, boolean directory) throws IOException {
+    private void setOwnerOnlyPermissions(Path path, boolean directory) {
         if (!FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) return;
         Set<PosixFilePermission> permissions = PosixFilePermissions.fromString(directory ? "rwx------" : "rw-------");
-        Files.setPosixFilePermissions(path, permissions);
+        try {
+            Files.setPosixFilePermissions(path, permissions);
+        } catch (IOException | UnsupportedOperationException | SecurityException ignored) {
+            // Virtualized host shares (e.g. Docker Desktop on Windows/macOS) expose POSIX view but reject chmod
+        }
     }
 
     private byte[] associatedData(UUID caseId, UUID evidenceId) {
