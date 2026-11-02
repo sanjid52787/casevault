@@ -172,7 +172,7 @@ jobs:
           severity: CRITICAL,HIGH
 
   dast:
-    name: DAST scaffold (Phase 13)
+    name: Local-stack OWASP ZAP baseline
     if: ${{ vars.CASEVAULT_ENABLE_DAST == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -181,8 +181,34 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
-      - name: Run authorised local DAST harness
+      - name: Generate ephemeral local-only Docker secrets and certificate
+        run: |
+          chmod +x deploy/scripts/gen-secrets.sh deploy/scripts/gen-dev-certs.sh scripts/run-dast.sh
+          ./deploy/scripts/gen-secrets.sh
+          ./deploy/scripts/gen-dev-certs.sh
+      - name: Start isolated hardened compose stack
+        run: docker compose -f docker-compose.yml -f docker-compose.hardened.yml up -d --build
+      - name: Wait for local health endpoint
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --insecure https://localhost/actuator/health; then exit 0; fi
+            sleep 5
+          done
+          docker compose -f docker-compose.yml -f docker-compose.hardened.yml logs
+          exit 1
+      - name: Run authorised ZAP baseline
         run: ./scripts/run-dast.sh
+      # actions/upload-artifact v4.6.2
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: zap-baseline-report
+          path: docs/assurance/results/*/zap/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Stop and remove isolated local stack
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.hardened.yml down -v --remove-orphans
 
   release:
     name: Signed release and provenance

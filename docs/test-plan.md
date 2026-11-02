@@ -79,3 +79,4 @@ authorisation matrix. Results and triage are recorded in `assurance/sast-sca-ana
 | Complete CSRF endpoint coverage | T-CSRF-001/002 prove two important cases, but no named test enumerates every state-changing endpoint. |
 | Supply-chain/deployment | No named automated tests exist yet. |
 | Dependency-Check execution | The CVSS >= 9 gate is configured, but the initial local database update was not completed without `NVD_API_KEY`; it remains a release prerequisite rather than a passing test claim. |
+| DAST/manual local-stack run | Phase 13 supplies local-only ZAP/manual procedures, but no result is claimed until the isolated `https://localhost` Compose stack run is retained and triaged. |

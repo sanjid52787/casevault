@@ -31,3 +31,4 @@
 | 2026-11-02 | Phase 10 | Codex | SpotBugs/FindSecBugs, Semgrep, Dependency-Check, CycloneDX, licence and Gitleaks assurance tooling, scripts, CI workflow and scan triage. | |
 | 2026-11-02 | Phase 11 | Codex | Hardened image, Compose topology, TLS proxy, secret/backup scripts, deployment runbook and container-hardening assessment. | |
 | 2026-11-02 | Phase 12 | Codex | SHA-pinned least-privilege GitHub Actions pipeline, release provenance/signing workflow, badges and CI/CD security-gate documentation. | |
+| 2026-11-02 | Phase 13 | Codex | Local-only ZAP/manual-testing harness, CI DAST job, vulnerability register and assurance summary. | |
