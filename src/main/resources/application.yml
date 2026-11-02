@@ -26,6 +26,16 @@ management:
   endpoint:
     health:
       show-details: never
+casevault:
+  evidence:
+    directory: ${CASEVAULT_EVIDENCE_DIRECTORY:uploads}
+    max-bytes: ${CASEVAULT_EVIDENCE_MAX_BYTES:10485760}
+    max-files-per-case: ${CASEVAULT_EVIDENCE_MAX_FILES_PER_CASE:20}
+  retention:
+    enabled: false
+    cron: ${CASEVAULT_RETENTION_CRON:0 0 3 * * *}
+    retention-days: ${CASEVAULT_RETENTION_DAYS:365}
+    grace-days: ${CASEVAULT_RETENTION_GRACE_DAYS:30}
 server:
   forward-headers-strategy: native
   servlet:

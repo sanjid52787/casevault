@@ -1,1 +1,1 @@
-<!doctype html><html xmlns:th="http://www.thymeleaf.org"><body><main><h1>Audit events</h1><ul><li th:each="e:${events}" th:text="${e.action}">event</li></ul></main></body></html>
+<!doctype html><html xmlns:th="http://www.thymeleaf.org"><body><main><form class="logout-form" th:action="@{/logout}" method="post"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><button type="submit">Sign out</button></form><h1>Audit events</h1><ul><li th:each="e:${events}" th:text="${e.action}">event</li></ul></main></body></html>

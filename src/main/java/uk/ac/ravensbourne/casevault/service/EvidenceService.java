@@ -3,16 +3,20 @@ package uk.ac.ravensbourne.casevault.service;
 import com.google.crypto.tink.Aead;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +30,7 @@ import uk.ac.ravensbourne.casevault.repository.CaseRepository;
 import uk.ac.ravensbourne.casevault.repository.EvidenceFileRepository;
 import uk.ac.ravensbourne.casevault.repository.UserAccountRepository;
 import uk.ac.ravensbourne.casevault.security.UserPrincipal;
+import uk.ac.ravensbourne.casevault.security.RequiresCaseAccess;
 import uk.ac.ravensbourne.casevault.storage.ScanService;
 
 /**
@@ -35,7 +40,8 @@ import uk.ac.ravensbourne.casevault.storage.ScanService;
  */
 @Service
 public class EvidenceService {
-    private static final long MAX_SIZE_BYTES = 10L * 1024 * 1024;
+    private static final long DEFAULT_MAX_SIZE_BYTES = 10L * 1024 * 1024;
+    private static final long DEFAULT_MAX_FILES_PER_CASE = 20;
     private static final int MAX_FILENAME_LENGTH = 120;
     private static final Map<String, String> EXTENSIONS = Map.of(
             "txt", "text/plain", "pdf", "application/pdf", "png", "image/png");
@@ -49,12 +55,16 @@ public class EvidenceService {
     private final ScanService scanner;
     private final Aead aead;
     private final Path root;
+    private final long maxSizeBytes;
+    private final long maxFilesPerCase;
     private final Tika tika = new Tika();
 
     public EvidenceService(CaseAccessService access, AccessPolicy policy, CaseRepository cases,
                            EvidenceFileRepository files, UserAccountRepository users, AuditService audit,
                            ScanService scanner, KeysetProvider keysetProvider,
-                           @Value("${casevault.evidence.directory:uploads}") String directory) throws Exception {
+                           @Value("${casevault.evidence.directory:uploads}") String directory,
+                           @Value("${casevault.evidence.max-bytes:" + DEFAULT_MAX_SIZE_BYTES + "}") long maxSizeBytes,
+                           @Value("${casevault.evidence.max-files-per-case:" + DEFAULT_MAX_FILES_PER_CASE + "}") long maxFilesPerCase) throws Exception {
         this.access = access;
         this.policy = policy;
         this.cases = cases;
@@ -64,9 +74,14 @@ public class EvidenceService {
         this.scanner = scanner;
         this.aead = keysetProvider.aead();
         this.root = Paths.get(directory).toAbsolutePath().normalize();
+        if (maxSizeBytes <= 0 || maxFilesPerCase <= 0) throw new IllegalArgumentException("Evidence limits must be positive");
+        this.maxSizeBytes = maxSizeBytes;
+        this.maxFilesPerCase = maxFilesPerCase;
         Files.createDirectories(root);
+        setOwnerOnlyPermissions(root, true);
     }
 
+    @RequiresCaseAccess
     public EvidenceFile upload(UserPrincipal principal, UUID caseId, MultipartFile multipart) throws IOException {
         CaseRecord caseRecord = access.requireView(principal, caseId);
         boolean assigned = cases.existsAssignment(caseId, principal.id());
@@ -76,8 +91,11 @@ public class EvidenceService {
 
         // Fail-closed order: size, filename, extension, magic bytes, executable header, scanner,
         // hash, AEAD encryption, then storage.
-        if (multipart.isEmpty() || multipart.getSize() > MAX_SIZE_BYTES) {
+        if (multipart.isEmpty() || multipart.getSize() > maxSizeBytes) {
             throw rejected(principal, null, "size-invalid");
+        }
+        if (files.countByCaseRecordId(caseId) >= maxFilesPerCase) {
+            throw rejected(principal, null, "case-file-limit");
         }
         String displayName = sanitiseFilename(multipart.getOriginalFilename(), principal);
         String extension = extension(displayName, principal);
@@ -107,6 +125,7 @@ public class EvidenceService {
         try {
             byte[] ciphertext = aead.encrypt(plaintext, associatedData(caseId, evidenceId));
             Files.write(storagePath, ciphertext, StandardOpenOption.CREATE_NEW);
+            setOwnerOnlyPermissions(storagePath, false);
             EvidenceFile saved = files.save(new EvidenceFile(evidenceId, caseRecord, displayName, storedName,
                     detectedMime, plaintext.length, sha256,
                     users.findById(principal.id()).orElseThrow(CaseNotFoundException::new)));
@@ -118,6 +137,7 @@ public class EvidenceService {
         }
     }
 
+    @RequiresCaseAccess
     public byte[] download(UserPrincipal principal, UUID caseId, UUID evidenceId) {
         CaseRecord caseRecord = access.requireView(principal, caseId);
         EvidenceFile evidence = files.findByIdAndCaseRecordId(evidenceId, caseId)
@@ -199,6 +219,13 @@ public class EvidenceService {
         Path candidate = root.resolve(storedName.toString()).normalize();
         if (!candidate.startsWith(root)) throw new IllegalStateException("Invalid evidence storage path");
         return candidate;
+    }
+
+    /** Applies owner-only permissions when the host filesystem exposes POSIX attributes. */
+    private void setOwnerOnlyPermissions(Path path, boolean directory) throws IOException {
+        if (!FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) return;
+        Set<PosixFilePermission> permissions = PosixFilePermissions.fromString(directory ? "rwx------" : "rw-------");
+        Files.setPosixFilePermissions(path, permissions);
     }
 
     private byte[] associatedData(UUID caseId, UUID evidenceId) {

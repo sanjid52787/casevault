@@ -2,6 +2,10 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <main>
+    <form class="logout-form" th:action="@{/logout}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <button type="submit">Sign out</button>
+    </form>
     <h1>System health</h1>
     <dl>
         <dt>Application</dt><dd>OK</dd>

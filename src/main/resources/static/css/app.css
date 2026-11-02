@@ -71,6 +71,10 @@ body {
     color: #fff
 }
 
+.logout-form { margin: 0 }
+.logout-form button { background: transparent; border: 1px solid #64748b; padding: 6px 10px; font-size: .82rem }
+.logout-form button:hover { background: #1e293b }
+
 .page {
     width: min(1120px, 92vw);
     margin: 42px auto 70px
@@ -148,6 +152,36 @@ body {
     font-size: 1.75rem;
     color: var(--navy)
 }
+
+.dashboard-count {
+    color: var(--brand);
+    font-size: 2.25rem;
+    font-weight: 800;
+    margin: 0 0 18px
+}
+
+.case-meta {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 24px 0
+}
+
+.case-meta div,
+.record-list li {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px
+}
+
+.case-meta dt { color: var(--muted); font-size: .78rem; font-weight: 700 }
+.case-meta dd { margin: 3px 0 0; font-weight: 700 }
+.record-list { list-style: none; padding: 0; display: grid; gap: 10px }
+.inline-form { display: flex; gap: 10px; align-items: end; margin-top: 10px }
+.inline-form label { margin: 0; flex: 1 }
+.checkbox { display: flex; gap: 8px; align-items: center }
+.checkbox input { width: auto; margin: 0 }
 
 label {
     display: block;
@@ -294,7 +328,8 @@ button:hover {
     }
 
     .dashboard,
-    .grid.two {
+    .grid.two,
+    .case-meta {
         grid-template-columns: 1fr
     }
 

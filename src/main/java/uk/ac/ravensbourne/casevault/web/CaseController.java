@@ -101,6 +101,13 @@ public class CaseController {
         var detail = views.view(principal, id);
         model.addAttribute("caseRecord", detail.caseRecord());
         model.addAttribute("notes", detail.notes());
+        model.addAttribute("actions", detail.actions());
+        model.addAttribute("analysts", detail.analysts());
+        model.addAttribute("nextStatuses", detail.nextStatuses());
+        model.addAttribute("permissions", detail.permissions());
+        model.addAttribute("categories", Category.values());
+        model.addAttribute("severities", Severity.values());
+        model.addAttribute("remediationStatuses", uk.ac.ravensbourne.casevault.domain.RemediationStatus.values());
         return "case-detail";
     }
 
@@ -108,6 +115,13 @@ public class CaseController {
     String assign(@AuthenticationPrincipal UserPrincipal principal, @PathVariable UUID id,
                   @Valid @ModelAttribute CaseMutationRequests.Assign request) {
         workflow.assign(principal, id, request);
+        return "redirect:/cases/" + id;
+    }
+
+    @PostMapping("/{id}/metadata") @PreAuthorize("hasRole('CASE_MANAGER')")
+    String metadata(@AuthenticationPrincipal UserPrincipal principal, @PathVariable UUID id,
+                    @Valid @ModelAttribute CaseMutationRequests.Metadata request) {
+        workflow.metadata(principal, id, request);
         return "redirect:/cases/" + id;
     }
 
@@ -130,6 +144,14 @@ public class CaseController {
                   @Valid @ModelAttribute CaseMutationRequests.Action request) {
         workflow.action(principal, id, request);
         return "redirect:/cases/" + id;
+    }
+
+    @PostMapping("/{caseId}/actions/{actionId}/status")
+    @PreAuthorize("hasAnyRole('SECURITY_ANALYST','CASE_MANAGER')")
+    String actionStatus(@AuthenticationPrincipal UserPrincipal principal, @PathVariable UUID caseId,
+                        @PathVariable UUID actionId, @Valid @ModelAttribute CaseMutationRequests.ActionStatus request) {
+        workflow.actionStatus(principal, caseId, actionId, request);
+        return "redirect:/cases/" + caseId;
     }
 
     @PostMapping("/{caseId}/reports/{reportId}/approve") @PreAuthorize("hasRole('CASE_MANAGER')")

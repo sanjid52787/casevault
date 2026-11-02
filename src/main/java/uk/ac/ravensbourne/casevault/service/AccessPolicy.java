@@ -7,8 +7,9 @@ import uk.ac.ravensbourne.casevault.security.UserPrincipal;
 /**
  * Central, deny-by-default object authorisation policy (OWASP API1:2023 / CWE-639).
  * Decision table: CLIENT_USER owns-organisation: view/create/upload, client-visible notes and approved reports only;
- * SECURITY_ANALYST assigned: view/add note/action/evidence/generate draft; CASE_MANAGER: view metadata, assign,
- * change status and approve if not generator; AUDITOR_ADMIN: audit/account administration only, never content.
+ * SECURITY_ANALYST assigned: view/add note/action/evidence/generate draft; CASE_MANAGER: view metadata and
+ * client-visible notes, add notes/actions, assign, change status and approve if not generator; AUDITOR_ADMIN:
+ * audit/account administration only, never case content. This is deny-by-default for every other combination.
  */
 @Service public class AccessPolicy {
     public boolean canViewCase(UserPrincipal p, CaseRecord c, boolean assigned) { return switch (role(p)) { case CLIENT_USER -> sameOrganisation(p,c); case SECURITY_ANALYST -> assigned; case CASE_MANAGER -> true; case AUDITOR_ADMIN -> false; }; }
@@ -16,7 +17,9 @@ import uk.ac.ravensbourne.casevault.security.UserPrincipal;
     public boolean canEditCaseMetadata(UserPrincipal p, CaseRecord c) { return role(p)==Role.CASE_MANAGER; }
     public boolean canAssign(UserPrincipal p, CaseRecord c) { return role(p)==Role.CASE_MANAGER; }
     public boolean canChangeStatus(UserPrincipal p, CaseRecord c) { return role(p)==Role.CASE_MANAGER; }
-    public boolean canAddNote(UserPrincipal p, CaseRecord c, boolean assigned) { return role(p)==Role.SECURITY_ANALYST&&assigned; }
+    public boolean canAddNote(UserPrincipal p, CaseRecord c, boolean assigned) {
+        return (role(p) == Role.SECURITY_ANALYST && assigned) || role(p) == Role.CASE_MANAGER;
+    }
     public boolean canAddRemediation(UserPrincipal p, CaseRecord c, boolean assigned) { return canAddNote(p,c,assigned); }
     public boolean canUploadEvidence(UserPrincipal p, CaseRecord c, boolean assigned) { return (role(p)==Role.CLIENT_USER&&sameOrganisation(p,c))||(role(p)==Role.SECURITY_ANALYST&&assigned)||(role(p)==Role.CASE_MANAGER); }
     public boolean canDownloadEvidence(UserPrincipal p, CaseRecord c, boolean assigned) { return canUploadEvidence(p,c,assigned); }

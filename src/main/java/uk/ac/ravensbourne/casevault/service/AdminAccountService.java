@@ -2,6 +2,7 @@ package uk.ac.ravensbourne.casevault.service;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.ac.ravensbourne.casevault.audit.AuditEventType;
@@ -17,15 +18,16 @@ import uk.ac.ravensbourne.casevault.security.UserPrincipal;
 public class AdminAccountService {
     private final UserAccountRepository users; private final SessionRevocationService sessions; private final AuditService audit;
     public AdminAccountService(UserAccountRepository users, SessionRevocationService sessions, AuditService audit){this.users=users;this.sessions=sessions;this.audit=audit;}
-    public List<UserAccount> accounts(){return users.findAll();}
+    public List<UserAccount> accounts(UserPrincipal actor){requireAdministrator(actor);return users.findAll();}
     @Transactional public void disable(UserPrincipal actor, UUID id, String reason){
-        requireReason(reason); UserAccount target=users.findById(id).orElseThrow(CaseNotFoundException::new);
+        requireAdministrator(actor); requireReason(reason); UserAccount target=users.findById(id).orElseThrow(CaseNotFoundException::new);
         if(actor.id().equals(id)) throw new IllegalArgumentException("Administrative action is not permitted");
         if(target.getRole()==Role.AUDITOR_ADMIN && target.isEnabled() && users.findAll().stream().filter(u->u.isEnabled()&&u.getRole()==Role.AUDITOR_ADMIN).count()<=1) throw new IllegalArgumentException("Administrative action is not permitted");
         target.disable(); sessions.revokeAll(target.getEmail()); audit.record(actor,AuditEventType.ACCOUNT_DISABLED,"ACCOUNT",id,"account-disabled");
     }
-    @Transactional public void enable(UserPrincipal actor,UUID id,String reason){requireReason(reason);UserAccount target=users.findById(id).orElseThrow(CaseNotFoundException::new);target.enable();audit.record(actor,AuditEventType.ACCOUNT_ENABLED,"ACCOUNT",id,"account-enabled");}
-    @Transactional public void revoke(UserPrincipal actor,UUID id,String reason){requireReason(reason);UserAccount target=users.findById(id).orElseThrow(CaseNotFoundException::new);sessions.revokeAll(target.getEmail());audit.record(actor,AuditEventType.SESSIONS_REVOKED,"ACCOUNT",id,"sessions-revoked");}
-    @Transactional public void forcePasswordReset(UserPrincipal actor,UUID id,String reason){requireReason(reason);UserAccount target=users.findById(id).orElseThrow(CaseNotFoundException::new);target.requirePasswordReset();sessions.revokeAll(target.getEmail());audit.record(actor,AuditEventType.FORCE_PASSWORD_RESET,"ACCOUNT",id,"reset-required");}
+    @Transactional public void enable(UserPrincipal actor,UUID id,String reason){requireAdministrator(actor);requireReason(reason);UserAccount target=users.findById(id).orElseThrow(CaseNotFoundException::new);target.enable();audit.record(actor,AuditEventType.ACCOUNT_ENABLED,"ACCOUNT",id,"account-enabled");}
+    @Transactional public void revoke(UserPrincipal actor,UUID id,String reason){requireAdministrator(actor);requireReason(reason);UserAccount target=users.findById(id).orElseThrow(CaseNotFoundException::new);sessions.revokeAll(target.getEmail());audit.record(actor,AuditEventType.SESSIONS_REVOKED,"ACCOUNT",id,"sessions-revoked");}
+    @Transactional public void forcePasswordReset(UserPrincipal actor,UUID id,String reason){requireAdministrator(actor);requireReason(reason);UserAccount target=users.findById(id).orElseThrow(CaseNotFoundException::new);target.requirePasswordReset();sessions.revokeAll(target.getEmail());audit.record(actor,AuditEventType.FORCE_PASSWORD_RESET,"ACCOUNT",id,"reset-required");}
     private void requireReason(String reason){if(reason==null||reason.isBlank()||reason.length()>120||reason.chars().anyMatch(Character::isISOControl))throw new IllegalArgumentException("Administrative action is not permitted");}
+    private void requireAdministrator(UserPrincipal actor){if(actor==null||actor.role()==null||!Role.AUDITOR_ADMIN.name().equals(actor.role()))throw new AccessDeniedException("Administrative action is not permitted");}
 }

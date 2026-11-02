@@ -2,18 +2,20 @@ package uk.ac.ravensbourne.casevault.security;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.time.Duration;
 import java.util.UUID;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.env.Environment;
+import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -46,7 +48,6 @@ class AuthenticationSessionSecurityTest {
     @Autowired PasswordChangeService passwordChanges;
     @Autowired JdbcTemplate jdbc;
     @Autowired MockMvc mvc;
-    @Autowired Environment environment;
     @Autowired FindByIndexNameSessionRepository<?> sessionRepository;
     @Autowired DisabledAccountSessionFilter disabledAccountSessionFilter;
     @Autowired TestDataCleaner cleaner;
@@ -66,14 +67,37 @@ class AuthenticationSessionSecurityTest {
     @Test void tAuth003UnknownUserSameResponse(){assertThrows(BadCredentialsException.class,()->provider.authenticate(UsernamePasswordAuthenticationToken.unauthenticated("missing@example.test","wrong password")));}
     @Test void tAuth004LockoutAfterFiveFailures(){for(int i=0;i<5;i++)assertThrows(BadCredentialsException.class,()->provider.authenticate(token("wrong password")));assertNotNull(jdbc.queryForObject("SELECT locked_until FROM users WHERE id=?",Object.class,user.getId()));assertThrows(BadCredentialsException.class,()->provider.authenticate(token("correct horse battery staple")));}
     @Test void tAuth005DisabledUserCannotLogin(){user.disable();users.save(user);assertThrows(BadCredentialsException.class,()->provider.authenticate(token("correct horse battery staple")));}
-    @Test void tAuth006LogoutInvalidatesSessionAndExpiresCookie() throws Exception {mvc.perform(post("/logout").session(new MockHttpSession()).with(csrf())).andExpect(status().is3xxRedirection()).andExpect(cookie().maxAge("SESSION",0));}
+    @Test void tAuth006LogoutInvalidatesSessionExpiresCookieAndRejectsReplay() throws Exception {
+        var login = mvc.perform(post("/login").with(csrf()).param("username", "user@example.test")
+                        .param("password", "correct horse battery staple"))
+                .andExpect(status().is3xxRedirection()).andReturn();
+        Cookie oldSessionCookie = login.getResponse().getCookie("SESSION");
+        assertNotNull(oldSessionCookie, "A successful login must issue a server-side session cookie");
+
+        mvc.perform(post("/logout").cookie(oldSessionCookie).with(csrf()))
+                .andExpect(status().is3xxRedirection()).andExpect(cookie().maxAge("SESSION",0));
+        mvc.perform(get("/cases").cookie(oldSessionCookie))
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("http://localhost/login"));
+        mvc.perform(get("/login").param("expired", ""))
+                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Your session has expired")));
+    }
     @Test void tAuth007SessionFixationChangesIdAfterLogin() {var anonymous=new MockHttpSession();var request=new org.springframework.mock.web.MockHttpServletRequest();request.setSession(anonymous);var originalId=anonymous.getId();new org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy().onAuthentication(UsernamePasswordAuthenticationToken.authenticated(UserPrincipal.from(user),null,UserPrincipal.from(user).getAuthorities()),request,new org.springframework.mock.web.MockHttpServletResponse());assertNotEquals(originalId,anonymous.getId(),"Spring Security changes the pre-authentication session identifier");}
     @Test void tAuth008CsrfRequiredOnLoginAndLogout() throws Exception {mvc.perform(post("/login").param("username","user@example.test").param("password","x")).andExpect(status().isForbidden());mvc.perform(post("/logout")).andExpect(status().isForbidden());}
     @Test void tAuth009PasswordPolicy(){assertThrows(IllegalArgumentException.class,()->policy.validate("password123","user@example.test"));assertThrows(IllegalArgumentException.class,()->policy.validate("user@example.test","user@example.test"));}
     @Test void tAuth010Argon2idHashStoredNotPlaintext(){assertTrue(user.getPasswordHash().startsWith("$argon2id$"));assertNotEquals("correct horse battery staple",user.getPasswordHash());}
     @Test void tSess001JdbcSessionUsesFifteenMinuteIdleTimeout(){assertEquals(Duration.ofMinutes(15),sessions().createSession().getMaxInactiveInterval());}
     @Test void tSess002RevocationDeletesIndexedPrincipalSessions(){Session session=sessions().createSession();session.setAttribute(FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME,user.getEmail());sessions().save(session);revocations.revokeAll(user.getEmail());assertNull(sessions().findById(session.getId()));}
-    @Test void tSess003SecureCookieFlagsConfigured(){assertEquals("true",environment.getProperty("server.servlet.session.cookie.http-only"));assertEquals("true",environment.getProperty("server.servlet.session.cookie.secure"));assertEquals("strict",environment.getProperty("server.servlet.session.cookie.same-site"));}
+    @Test void tSess003LoginResponseSetsSecureCookieFlags() throws Exception {
+        var login = mvc.perform(post("/login").with(csrf()).param("username", "user@example.test")
+                        .param("password", "correct horse battery staple"))
+                .andExpect(status().is3xxRedirection()).andReturn();
+        String sessionHeader = login.getResponse().getHeaders(HttpHeaders.SET_COOKIE).stream()
+                .filter(value -> value.startsWith("SESSION="))
+                .findFirst().orElseThrow(() -> new AssertionError("No SESSION Set-Cookie header"));
+        assertTrue(sessionHeader.contains("HttpOnly"));
+        assertTrue(sessionHeader.contains("Secure"));
+        assertTrue(sessionHeader.contains("SameSite=Strict"));
+    }
     @Test void absoluteSessionExpiresAfterEightHours(){long now=System.currentTimeMillis();assertFalse(AbsoluteSessionTimeoutFilter.expired(now-Duration.ofHours(8).toMillis(),now));assertTrue(AbsoluteSessionTimeoutFilter.expired(now-Duration.ofHours(8).toMillis()-1,now));}
     @Test void disabledUserExistingSessionIsRejected() throws Exception {user.disable();users.save(user);var request=new org.springframework.mock.web.MockHttpServletRequest();request.setSession(new MockHttpSession());var response=new org.springframework.mock.web.MockHttpServletResponse();org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(UserPrincipal.from(user),null,UserPrincipal.from(user).getAuthorities()));try{disabledAccountSessionFilter.doFilter(request,response,new org.springframework.mock.web.MockFilterChain());assertEquals("/login?expired",response.getRedirectedUrl());}finally{org.springframework.security.core.context.SecurityContextHolder.clearContext();}}
     @Test void tRate001IpAndAccountBucketsLimit(){for(int i=0;i<10;i++)assertTrue(limiter.allow("192.0.2.10","account@test"));assertFalse(limiter.allow("192.0.2.10","account@test"));}
