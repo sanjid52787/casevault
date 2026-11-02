@@ -1,0 +1,17 @@
+title = "CaseVault local secret scanning rules"
+
+[extend]
+useDefault = true
+
+# Commit 576c283 was the removed legacy Django prototype. Its two fixed values were
+# local CI test fixtures, not deployed credentials; the workflow no longer exists.
+# This narrow historical allow-list keeps full-history CI useful without accepting
+# the same patterns in any current or future commit.
+[allowlist]
+commits = ["576c28369836c07c30c68b408581721564a45f09"]
+
+[[rules]]
+id = "casevault-test-fake-secret"
+description = "Clearly fake local scanner-verification marker; never commit this value."
+regex = '''CASEVAULT_TEST_FAKE_SECRET_[A-Z0-9]{12,}'''
+entropy = 0

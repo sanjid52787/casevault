@@ -1,0 +1,127 @@
+name: casevault
+
+services:
+  storage-init:
+    image: busybox:1.36.1
+    command: ["sh", "-c", "chown -R 999:999 /postgres && chown -R 10001:10001 /evidence"]
+    volumes:
+      - postgres-data:/postgres
+      - evidence-data:/evidence
+    networks: [data]
+    restart: "no"
+
+  db:
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_DB: casevault
+      POSTGRES_USER: casevault_admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/casevault_postgres_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./deploy/init:/opt/casevault/init:ro
+      - ./deploy/scripts/init-db.sh:/docker-entrypoint-initdb.d/00-casevault-init-db.sh:ro
+    secrets:
+      - casevault_postgres_password
+      - casevault_db_password
+      - casevault_migrator_password
+    user: "999:999"
+    networks: [data]
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U casevault_admin -d casevault"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CASEVAULT_DB_URL: jdbc:postgresql://db:5432/casevault
+      CASEVAULT_DB_USERNAME: casevault_app
+      SPRING_FLYWAY_USER: casevault_migrator
+      CASEVAULT_EVIDENCE_DIRECTORY: /var/lib/casevault/evidence
+      SERVER_FORWARD_HEADERS_STRATEGY: native
+    volumes:
+      - evidence-data:/var/lib/casevault/evidence
+    secrets:
+      - casevault_db_password
+      - casevault_migrator_password
+      - casevault_audit_hmac_key
+      - casevault_session_secret
+      - casevault_tink_keyset
+    depends_on:
+      db:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+    networks: [data]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 45s
+      retries: 3
+
+  db-grants:
+    image: postgres:16.6-alpine
+    command: ["sh", "/usr/local/bin/casevault-apply-db-grants.sh"]
+    environment:
+      PGHOST: db
+      PGDATABASE: casevault
+      PGUSER: casevault_admin
+      PGPASSWORD_FILE: /run/secrets/casevault_postgres_password
+    volumes:
+      - ./deploy/scripts/apply-db-grants.sh:/usr/local/bin/casevault-apply-db-grants.sh:ro
+      - ./deploy/init/02-apply-app-grants.sql:/opt/casevault/02-apply-app-grants.sql:ro
+    secrets:
+      - casevault_postgres_password
+    depends_on:
+      app:
+        condition: service_healthy
+    networks: [data]
+    restart: "no"
+
+  proxy:
+    image: nginx:1.27.4-alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./secrets/tls:/etc/nginx/tls:ro
+    depends_on:
+      db-grants:
+        condition: service_completed_successfully
+    networks: [edge, data]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null --no-check-certificate https://127.0.0.1/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  edge: {}
+  data:
+    internal: true
+
+volumes:
+  postgres-data: {}
+  evidence-data: {}
+
+secrets:
+  casevault_postgres_password:
+    file: ./secrets/postgres_password.txt
+  casevault_db_password:
+    file: ./secrets/db_password.txt
+  casevault_migrator_password:
+    file: ./secrets/migrator_password.txt
+  casevault_audit_hmac_key:
+    file: ./secrets/audit_hmac_key.txt
+  casevault_session_secret:
+    file: ./secrets/session_secret.txt
+  casevault_tink_keyset:
+    file: ./secrets/tink-keyset.json
