@@ -16,4 +16,22 @@
 | H2 | 2.3.232 | MPL-2.0 or EPL-1.0 | Test database only |
 | Testcontainers | 1.20.4 | MIT | Optional integration-test infrastructure |
 
-TODO: Generate and review a full transitive dependency/SBOM licence inventory in a later phase.
+## Generated transitive inventory review
+
+Generated on 2026-11-02 with:
+
+```text
+./mvnw -B -Plicence-report license:aggregate-third-party-report
+```
+
+The generated Maven report found **0 dependencies with no declared licence**. It is a local build artefact at
+`target/aggregate-third-party-report.html`; the CycloneDX reference under `docs/assurance/sbom/` is the committed
+dependency snapshot. The direct dependency table above remains a human-readable summary, while the Maven report
+is the authoritative resolved transitive inventory for the build date.
+
+Most resolved runtime dependencies declare Apache-2.0, MIT, BSD, EPL or MPL-family licences. The report also
+shows dual-licensed transitive components, including Logback (EPL-1.0 or LGPL) and JNA (Apache-2.0 or
+LGPL-2.1-or-later), and Jakarta APIs carrying EPL/GPL-with-Classpath-Exception alternatives. These are not
+automatically classified as incompatible because use is as unmodified library dependencies, but distribution,
+licence notices and any future change to bundled/modified code require a human licence review before release.
+No AGPL dependency or missing-licence entry was reported by this run.

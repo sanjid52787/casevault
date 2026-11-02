@@ -53,7 +53,7 @@ Scope: **own org** is the caller's organisation; **assigned** is an analyst assi
 | Create incident | own org | none | none | none |
 | View case body | own org | assigned | all | none |
 | Set classification/status; assign analyst | none | none | all | none |
-| Add/view notes and actions | view client-visible notes only | assigned | all | **none — never case content** |
+| Add/view notes and actions | view client-visible notes only; cannot add | assigned analyst may add/view | may add notes/actions but views **client-visible notes only**; internal analyst notes remain hidden | **none — never case content** |
 | Upload/download evidence | own org | assigned | all | **none — never evidence content** |
 | Search cases | own org | assigned | all | security-event metadata only |
 | Generate/approve report | view approved reports only | generate draft when assigned / no approval | approve another user's report | **none — never report content** |
@@ -61,4 +61,4 @@ Scope: **own org** is the caller's organisation; **assigned** is an analyst assi
 
 ## Implemented authorisation decision table
 
-The central `AccessPolicy` is deny-by-default. Client users are restricted to their organisation and may create/upload; analysts require a `case_assignments` entry for every case-content operation; managers may view metadata, assign, change status and approve another user's report; auditor/admin users can view audit/account/health metadata only. Auditors never receive case notes, evidence content, or report content. An unauthorised object lookup is reported as 404 and produces a rate-limited `ACCESS_DENIED` audit signal. Request DTOs must never supply organisation, role, owner, or status authority fields.
+The central `AccessPolicy` is deny-by-default. Client users are restricted to their organisation and may create/upload; analysts require a `case_assignments` entry for every case-content operation; managers may view case metadata and client-visible notes, assign, update classification/status, add notes/actions, and approve another user's report. Managers do **not** receive internal-only analyst notes: this preserves need-to-know separation while still allowing operational coordination through client-visible findings and remediation status. Auditor/admin users can view audit/account/health metadata only. Auditors never receive case notes, evidence content, or report content. An unauthorised object lookup is reported as 404 and produces a rate-limited `ACCESS_DENIED` audit signal. Request DTOs must never supply organisation, role, owner, or status authority fields.

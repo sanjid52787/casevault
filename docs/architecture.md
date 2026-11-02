@@ -15,6 +15,36 @@ flowchart LR
 
 Layers follow `web -> service -> repository -> domain`. Controllers accept DTOs only; services own `AccessPolicy` decisions and are the only route to repositories/storage. Auditor administration is deliberately separate from content access. Public endpoints are minimal; actuator exposes health only.
 
+## Deployed topology and trust boundaries
+
+```mermaid
+flowchart LR
+  subgraph TB1[Internet trust boundary]
+    U[Browser]
+  end
+  subgraph TB2[Host / DMZ boundary]
+    P[nginx proxy\nTLS 1.2/1.3 · 443 only\nrate limit]
+  end
+  subgraph TB3[Internal Compose data network]
+    A[CaseVault app\nnon-root UID 10001\nread-only root]
+    G[One-shot db-grants\nrevoke audit UPDATE/DELETE]
+    D[(PostgreSQL\nno host port)]
+    E[(Evidence volume\nAES-GCM ciphertext)]
+  end
+  subgraph TB4[Secrets boundary]
+    S[Docker secrets\nDB passwords · Tink keyset · HMAC key]
+  end
+  U -->|HTTPS| P
+  P -->|private HTTP| A
+  A --> D
+  A --> E
+  G --> D
+  S -. read-only mount .-> A
+  S -. one-time read .-> D
+```
+
+Only the proxy is connected to the external edge network and publishes host port 443. Application and database services have no host-published ports; the database network is Docker-internal. A short-lived volume-initialisation container prepares ownership, and the grant job completes before nginx starts. This does not replace host, Docker daemon or secret-manager hardening.
+
 ## Login sequence
 
 ```mermaid

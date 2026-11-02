@@ -12,5 +12,6 @@ secrets/
 *.iml
 *.class
 *.log
+docs/assurance/results/
 .env
 .AGENTS.md
