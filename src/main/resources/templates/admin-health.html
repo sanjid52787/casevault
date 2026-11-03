@@ -1,18 +1,81 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>System Health | CaseVault</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
 <body>
-<main>
-    <form class="logout-form" th:action="@{/logout}" method="post">
-        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-        <button type="submit">Sign out</button>
-    </form>
-    <h1>System health</h1>
-    <dl>
-        <dt>Application</dt><dd>OK</dd>
-        <dt>Database</dt><dd>OK</dd>
-        <dt>Audit</dt><dd>OK</dd>
-        <dt>Evidence storage</dt><dd th:text="${storageStatus}">FAIL</dd>
-    </dl>
+<header class="topbar">
+    <a class="brand" th:href="@{/}"><span class="brand-mark">✓</span>CaseVault</a>
+    <nav class="topnav">
+        <a th:href="@{/admin/audit}">Audit</a>
+        <a th:href="@{/admin/accounts}">Accounts</a>
+        <a th:href="@{/admin/health}">Health</a>
+        <a th:href="@{/password/change}">Password</a>
+        <form class="logout-form" th:action="@{/logout}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button type="submit">Sign out</button>
+        </form>
+    </nav>
+</header>
+
+<main class="page">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">Auditor / System Assurance</p>
+            <h1>System Health</h1>
+            <p class="subtitle">Live status of core CaseVault services. Checks are non-disclosing: storage
+                paths and exception details are never shown on this page.</p>
+        </div>
+        <div>
+            <a th:href="@{/admin/health}" class="button secondary">Refresh status</a>
+        </div>
+    </div>
+
+    <div class="status-grid">
+        <div class="status-tile">
+            <span class="status-tile-label">Application</span>
+            <strong class="status-tile-value ok">OK</strong>
+            <p class="status-tile-note">Serving this page from the running instance.</p>
+        </div>
+        <div class="status-tile">
+            <span class="status-tile-label">Database</span>
+            <strong class="status-tile-value"
+                    th:classappend="${dbStatus == 'OK'} ? ok : bad"
+                    th:text="${dbStatus}">OK</strong>
+            <p class="status-tile-note">Connectivity check against the primary data store.</p>
+        </div>
+        <div class="status-tile">
+            <span class="status-tile-label">Audit logging</span>
+            <strong class="status-tile-value neutral">Active</strong>
+            <p class="status-tile-note">Append-only HMAC hash chain. Verify integrity from the
+                <a th:href="@{/admin/audit}">Audit Events</a> page.</p>
+        </div>
+        <div class="status-tile">
+            <span class="status-tile-label">Evidence storage</span>
+            <strong class="status-tile-value"
+                    th:classappend="${storageStatus.name() == 'OK'} ? ok : bad"
+                    th:text="${storageStatus}">OK</strong>
+            <p class="status-tile-note">Probe writes and removes a temporary file; the directory path and
+                any error details are never returned.</p>
+        </div>
+    </div>
+
+    <section class="card">
+        <h2>Assurance notes</h2>
+        <ul class="note-list">
+            <li>The database check executes a lightweight read query; a failure here means case data,
+                sessions and audit records are all unavailable.</li>
+            <li>Evidence storage is encrypted at rest (AES-GCM). This probe verifies write access only —
+                it never exposes file names, paths or error messages to administrators.</li>
+            <li>Audit log tamper-evidence is verified separately through the hash-chain verification
+                action on the <a th:href="@{/admin/audit}">Audit Events</a> page.</li>
+        </ul>
+    </section>
+
+    <p class="footer-note">Status checked at <span th:text="${checkedAt}">2026-01-01T00:00:00Z</span> (UTC).</p>
 </main>
 </body>
 </html>

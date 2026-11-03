@@ -30,6 +30,7 @@ public class AdminController {
     @GetMapping("/accounts")
     String accounts(@AuthenticationPrincipal UserPrincipal p, Model m) {
         m.addAttribute("accounts", accounts.accounts(p));
+        m.addAttribute("me", p);
         return "admin-accounts";
     }
 
@@ -87,7 +88,9 @@ public class AdminController {
     @GetMapping("/health")
     String health(@AuthenticationPrincipal UserPrincipal p, Model m) {
         audits.healthViewed(p);
+        m.addAttribute("dbStatus", accounts.databaseStatus(p));
         m.addAttribute("storageStatus", storageHealth.probe());
+        m.addAttribute("checkedAt", Instant.now());
         return "admin-health";
     }
 }

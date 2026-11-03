@@ -1,1 +1,138 @@
-<!doctype html><html xmlns:th="http://www.thymeleaf.org"><body><main><form class="logout-form" th:action="@{/logout}" method="post"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><button type="submit">Sign out</button></form><h1>Accounts</h1><table><tr><th>Email</th><th>Status</th><th>Last login</th><th>Failures</th></tr><tr th:each="a:${accounts}"><td th:text="${a.email}">email</td><td th:text="${a.enabled}">status</td><td th:text="${a.lastLoginAt}">login</td><td th:text="${a.failedAttempts}">0</td></tr></table></main></body></html>
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Account Management | CaseVault</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" th:href="@{/}"><span class="brand-mark">✓</span>CaseVault</a>
+    <nav class="topnav">
+        <a th:href="@{/admin/audit}">Audit</a>
+        <a th:href="@{/admin/accounts}">Accounts</a>
+        <a th:href="@{/admin/health}">Health</a>
+        <a th:href="@{/password/change}">Password</a>
+        <form class="logout-form" th:action="@{/logout}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button type="submit">Sign out</button>
+        </form>
+    </nav>
+</header>
+
+<main class="page">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">Auditor / Account Administration</p>
+            <h1>Accounts</h1>
+            <p class="subtitle">Disable accounts, revoke active sessions and force password resets. Every
+                action requires a reason and is written to the protected audit log.</p>
+        </div>
+    </div>
+
+    <!-- Summary tiles -->
+    <div class="status-grid" th:with="total=${#lists.size(accounts)}, enabledCount=${accounts.?[enabled].size()}, disabledCount=${total - enabledCount}">
+        <div class="status-tile">
+            <span class="status-tile-label">Total accounts</span>
+            <strong class="status-tile-value" th:text="${total}">0</strong>
+        </div>
+        <div class="status-tile">
+            <span class="status-tile-label">Enabled</span>
+            <strong class="status-tile-value ok" th:text="${enabledCount}">0</strong>
+        </div>
+        <div class="status-tile">
+            <span class="status-tile-label">Disabled</span>
+            <strong class="status-tile-value" th:classappend="${disabledCount > 0} ? bad : neutral" th:text="${disabledCount}">0</strong>
+        </div>
+        <div class="status-tile">
+            <span class="status-tile-label">Administrators</span>
+            <strong class="status-tile-value neutral" th:text="${accounts.?[role.name() == 'AUDITOR_ADMIN'].size()}">0</strong>
+        </div>
+    </div>
+
+    <!-- Accounts table -->
+    <section class="card">
+        <div th:if="${#lists.isEmpty(accounts)}" class="empty">
+            <p>No accounts found.</p>
+        </div>
+        <div th:if="${not #lists.isEmpty(accounts)}" class="table-wrap">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Organisation</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Last login</th>
+                    <th>Failed logins</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="a : ${accounts}" th:classappend="${not a.enabled} ? 'row-disabled'">
+                    <td>
+                        <div class="cell-primary" th:text="${a.email}">user@example.com</div>
+                        <div class="cell-sub" th:if="${a.forcePasswordReset}">Password reset required</div>
+                    </td>
+                    <td th:text="${a.organisation.name}">Organisation</td>
+                    <td><span class="badge" th:text="${a.role}">ROLE</span></td>
+                    <td>
+                        <span th:if="${not a.enabled}" class="status-badge bad">Disabled</span>
+                        <span th:if="${a.enabled and a.locked}" class="status-badge warn">Locked</span>
+                        <span th:if="${a.enabled and not a.locked}" class="status-badge ok">Enabled</span>
+                    </td>
+                    <td>
+                        <span th:if="${a.lastLoginAt != null}" th:text="${a.lastLoginAt}">2026-01-01T00:00:00Z</span>
+                        <span th:if="${a.lastLoginAt == null}" class="cell-sub">Never</span>
+                    </td>
+                    <td>
+                        <span th:text="${a.failedAttempts}">0</span>
+                        <span th:if="${a.failedAttempts > 0}" class="status-badge bad" th:text="${a.locked} ? 'Locked 15 min' : 'At risk'">At risk</span>
+                    </td>
+                    <td class="cell-actions">
+                        <!--
+                            No JavaScript: <details> keeps the row compact while exposing every
+                            administrative action. Each action posts a reason, which the service
+                            layer validates and the audit chain records.
+                        -->
+                        <details class="row-actions">
+                            <summary>Manage</summary>
+                            <!--
+                                No JavaScript: <details> keeps the row compact and one form with
+                                per-button formaction exposes every administrative action. The
+                                reason is validated by the service layer and audited.
+                            -->
+                            <form class="row-actions-panel" method="post">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <label class="row-actions-reason">
+                                    Reason (recorded in audit log)
+                                    <input type="text" name="reason" maxlength="200" required
+                                           placeholder="e.g. User left the organisation">
+                                </label>
+                                <div class="row-actions-buttons">
+                                    <button th:if="${a.enabled and a.email != me.username}" type="submit"
+                                            class="button danger small"
+                                            th:formaction="@{/admin/accounts/{id}/disable(id=${a.id})}">Disable account</button>
+                                    <button th:if="${not a.enabled}" type="submit" class="button small"
+                                            th:formaction="@{/admin/accounts/{id}/enable(id=${a.id})}">Re-enable</button>
+                                    <button type="submit" class="button danger small"
+                                            th:formaction="@{/admin/accounts/{id}/revoke(id=${a.id})}">Revoke all sessions</button>
+                                    <button type="submit" class="button secondary small"
+                                            th:formaction="@{/admin/accounts/{id}/force-password-reset(id=${a.id})}">Force password reset</button>
+                                </div>
+                            </form>
+                        </details>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <p class="footer-note">Administrative actions cannot target your own account, and the last enabled
+        administrator cannot be disabled. Audit records for these actions are verifiable on the
+        <a th:href="@{/admin/audit}">Audit Events</a> page.</p>
+</main>
+</body>
+</html>

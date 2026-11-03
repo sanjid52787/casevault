@@ -19,6 +19,8 @@ public class AdminAccountService {
     private final UserAccountRepository users; private final SessionRevocationService sessions; private final AuditService audit;
     public AdminAccountService(UserAccountRepository users, SessionRevocationService sessions, AuditService audit){this.users=users;this.sessions=sessions;this.audit=audit;}
     public List<UserAccount> accounts(UserPrincipal actor){requireAdministrator(actor);return users.findAll();}
+    /** Non-disclosing database connectivity probe (CWE-200): reduced to OK/FAIL; no exception detail escapes. */
+    public String databaseStatus(UserPrincipal actor){requireAdministrator(actor);try{users.count();return "OK";}catch(RuntimeException e){return "FAIL";}}
     @Transactional public void disable(UserPrincipal actor, UUID id, String reason){
         requireAdministrator(actor); requireReason(reason); UserAccount target=users.findById(id).orElseThrow(CaseNotFoundException::new);
         if(actor.id().equals(id)) throw new IllegalArgumentException("Administrative action is not permitted");

@@ -63,6 +63,8 @@ public class DevDataSeeder {
                     role + "=" + email + "=" + password + System.lineSeparator(),
                     java.nio.file.StandardOpenOption.CREATE,
                     java.nio.file.StandardOpenOption.APPEND);
-        } catch (Exception ignored) { }
+        } catch (Exception exception) {
+            LOG.warn("Could not write initial dev credentials to target/dev-credentials.txt", exception);
+        }
     }
 }
