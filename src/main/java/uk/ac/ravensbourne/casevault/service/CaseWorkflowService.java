@@ -11,6 +11,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.ac.ravensbourne.casevault.audit.AuditService;
@@ -27,6 +28,7 @@ import uk.ac.ravensbourne.casevault.domain.Severity;
 import uk.ac.ravensbourne.casevault.repository.CaseNoteRepository;
 import uk.ac.ravensbourne.casevault.repository.CaseAssignmentRepository;
 import uk.ac.ravensbourne.casevault.repository.CaseRepository;
+import uk.ac.ravensbourne.casevault.repository.CaseSpecifications;
 import uk.ac.ravensbourne.casevault.repository.RemediationActionRepository;
 import uk.ac.ravensbourne.casevault.repository.UserAccountRepository;
 import uk.ac.ravensbourne.casevault.security.RequiresCaseAccess;
@@ -165,14 +167,44 @@ public class CaseWorkflowService {
         var from = fromDate == null ? null : fromDate.atStartOfDay().toInstant(ZoneOffset.UTC);
         var toExclusive = toDate == null ? null : toDate.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
         var pageable = PageRequest.of(Math.max(page, 0), safeSize, Sort.by(Sort.Direction.DESC, field));
-        Page<CaseRecord> result = switch (Role.valueOf(principal.role())) {
-            case CLIENT_USER -> cases.searchClient(principal.organisationId(), query, category, severity, status, owner,
-                    from, toExclusive, pageable);
-            case SECURITY_ANALYST -> cases.searchAssigned(principal.id(), query, category, severity, status, owner,
-                    from, toExclusive, pageable);
-            case CASE_MANAGER -> cases.searchManaged(query, category, severity, status, owner, from, toExclusive, pageable);
-            case AUDITOR_ADMIN -> Page.empty(pageable);
+
+        Role role = Role.valueOf(principal.role());
+        if (role == Role.AUDITOR_ADMIN) {
+            audit.record(principal, "SEARCH_PERFORMED", "CASE", null, "search-performed");
+            return Page.empty(pageable);
+        }
+
+        Specification<CaseRecord> spec = CaseSpecifications.notDeleted();
+        spec = switch (role) {
+            case CLIENT_USER -> spec.and(CaseSpecifications.clientScope(principal.organisationId()));
+            case SECURITY_ANALYST -> spec.and(CaseSpecifications.assignedScope(principal.id()));
+            case CASE_MANAGER -> spec;
+            case AUDITOR_ADMIN -> spec;
         };
+
+        if (query != null) {
+            spec = spec.and(CaseSpecifications.queryLike(query));
+        }
+        if (category != null) {
+            spec = spec.and(CaseSpecifications.categoryEquals(category));
+        }
+        if (severity != null) {
+            spec = spec.and(CaseSpecifications.severityEquals(severity));
+        }
+        if (status != null) {
+            spec = spec.and(CaseSpecifications.statusEquals(status));
+        }
+        if (owner != null) {
+            spec = spec.and(CaseSpecifications.ownerEquals(owner));
+        }
+        if (from != null) {
+            spec = spec.and(CaseSpecifications.createdFrom(from));
+        }
+        if (toExclusive != null) {
+            spec = spec.and(CaseSpecifications.createdBefore(toExclusive));
+        }
+
+        Page<CaseRecord> result = cases.findAll(spec, pageable);
         audit.record(principal, "SEARCH_PERFORMED", "CASE", null, "search-performed");
         return result;
     }

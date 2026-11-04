@@ -104,6 +104,7 @@ flowchart TD
 | R-04 | Audit tampering/fork | T, R | Audit log, HMAC key | 3 | 5 | 15 | High | SR-11 | DB superuser with HMAC key can forge history; external anchoring is future work. | Audit owner |
 | R-05 | XSS/injection | T, I | Session tokens, browser-rendered case data | 3 | 4 | 12 | Medium | SR-04, SR-05, SR-07 | Future rich text needs dedicated policy. | Web lead |
 | R-06 | Resource exhaustion | D | Application/storage | 4 | 3 | 12 | Medium | SR-09, SR-12 | Volumetric DDoS exceeds application controls. | Operations |
+| R-07 | Rogue account creation by compromised admin | E, S | Credentials, case data | 3 | 4 | 12 | Medium | SR-03, SR-11, SR-12 | A compromised AUDITOR_ADMIN cannot create another AUDITOR_ADMIN (role allow-list blocks privilege escalation). All account and organisation creations are audited with HMAC-chained events. Generated passwords are never logged or stored in plaintext. Rate limiting (Bucket4j) restricts bulk creation. Forced password reset prevents the admin from using created accounts. Residual: a compromised admin can still create lower-privileged accounts and observe one-time passwords on the result page; out-of-band password delivery and monitoring of ACCOUNT_CREATED audit events mitigate. | Security lead |
 
 Priority is derived from score: Critical 20-25, High 15-19, Medium 8-14, Low 1-7.
 

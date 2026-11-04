@@ -92,6 +92,7 @@ public class CaseController {
         rateLimits.checkSearch(principal, request.getRemoteAddr());
         model.addAttribute("cases", workflow.search(principal, q, category, severity, status, owner, from, to, page, size, sort));
         model.addAttribute("query", q == null ? "" : q);
+        model.addAttribute("role", principal == null ? "" : principal.role());
         return "case-list";
     }
 

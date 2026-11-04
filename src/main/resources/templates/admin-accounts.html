@@ -29,6 +29,10 @@
             <p class="subtitle">Disable accounts, revoke active sessions and force password resets. Every
                 action requires a reason and is written to the protected audit log.</p>
         </div>
+        <div class="page-actions">
+            <a th:href="@{/admin/accounts/create}" class="button primary">Create user</a>
+            <a th:href="@{/admin/organisations/create}" class="button secondary">Create organisation</a>
+        </div>
     </div>
 
     <!-- Summary tiles -->
@@ -70,17 +74,19 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="a : ${accounts}" th:classappend="${not a.enabled} ? 'row-disabled'">
+                <tr th:each="a : ${accounts}" th:classappend="${a.deleted or not a.enabled} ? 'row-disabled'">
                     <td>
                         <div class="cell-primary" th:text="${a.email}">user@example.com</div>
-                        <div class="cell-sub" th:if="${a.forcePasswordReset}">Password reset required</div>
+                        <div class="cell-sub" th:if="${a.deleted}">Account deleted / anonymised</div>
+                        <div class="cell-sub" th:if="${not a.deleted and a.forcePasswordReset}">Password reset required</div>
                     </td>
                     <td th:text="${a.organisation.name}">Organisation</td>
                     <td><span class="badge" th:text="${a.role}">ROLE</span></td>
                     <td>
-                        <span th:if="${not a.enabled}" class="status-badge bad">Disabled</span>
-                        <span th:if="${a.enabled and a.locked}" class="status-badge warn">Locked</span>
-                        <span th:if="${a.enabled and not a.locked}" class="status-badge ok">Enabled</span>
+                        <span th:if="${a.deleted}" class="status-badge bad">Deleted</span>
+                        <span th:if="${not a.deleted and not a.enabled}" class="status-badge bad">Disabled</span>
+                        <span th:if="${not a.deleted and a.enabled and a.locked}" class="status-badge warn">Locked</span>
+                        <span th:if="${not a.deleted and a.enabled and not a.locked}" class="status-badge ok">Enabled</span>
                     </td>
                     <td>
                         <span th:if="${a.lastLoginAt != null}" th:text="${a.lastLoginAt}">2026-01-01T00:00:00Z</span>
@@ -111,15 +117,17 @@
                                            placeholder="e.g. User left the organisation">
                                 </label>
                                 <div class="row-actions-buttons">
-                                    <button th:if="${a.enabled and a.email != me.username}" type="submit"
+                                    <button th:if="${not a.deleted and a.enabled and a.email != me.username}" type="submit"
                                             class="button danger small"
                                             th:formaction="@{/admin/accounts/{id}/disable(id=${a.id})}">Disable account</button>
-                                    <button th:if="${not a.enabled}" type="submit" class="button small"
+                                    <button th:if="${not a.deleted and not a.enabled}" type="submit" class="button small"
                                             th:formaction="@{/admin/accounts/{id}/enable(id=${a.id})}">Re-enable</button>
-                                    <button type="submit" class="button danger small"
+                                    <button th:if="${not a.deleted}" type="submit" class="button danger small"
                                             th:formaction="@{/admin/accounts/{id}/revoke(id=${a.id})}">Revoke all sessions</button>
-                                    <button type="submit" class="button secondary small"
+                                    <button th:if="${not a.deleted}" type="submit" class="button secondary small"
                                             th:formaction="@{/admin/accounts/{id}/force-password-reset(id=${a.id})}">Force password reset</button>
+                                    <button th:if="${not a.deleted and a.id != me.id}" type="submit" class="button danger small"
+                                            th:formaction="@{/admin/accounts/{id}/delete(id=${a.id})}">Delete account</button>
                                 </div>
                             </form>
                         </details>

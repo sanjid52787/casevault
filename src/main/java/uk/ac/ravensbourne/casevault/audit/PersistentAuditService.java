@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -64,7 +65,7 @@ public class PersistentAuditService implements AuditService {
                 PreparedStatement statement = connection.prepareStatement(
                         "INSERT INTO audit_events (ts,actor_id,actor_role,action,target_type,target_id,outcome,correlation_id,details_json,prev_hash,hash) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                         Statement.RETURN_GENERATED_KEYS);
-                statement.setObject(1, timestamp);
+                statement.setTimestamp(1, Timestamp.from(timestamp));
                 statement.setObject(2, actor == null ? null : actor.id());
                 statement.setString(3, actor == null ? null : actor.role());
                 statement.setString(4, action);
@@ -101,7 +102,17 @@ public class PersistentAuditService implements AuditService {
             String rowPrevious = (String) row.get("prev_hash");
             if (!Objects.equals(previous, rowPrevious)) return AuditChainVerification.broken(id);
             UserPrincipal actor = row.get("actor_id") == null ? null : new UserPrincipal(UUID.fromString(row.get("actor_id").toString()), UUID.randomUUID(), "audit@internal", "", row.get("actor_role").toString(), true, false);
-            Instant ts = ((java.time.OffsetDateTime) row.get("ts")).toInstant();
+            Object rawTs = row.get("ts");
+            Instant ts;
+            if (rawTs instanceof java.time.OffsetDateTime odt) {
+                ts = odt.toInstant();
+            } else if (rawTs instanceof Timestamp t) {
+                ts = t.toInstant();
+            } else if (rawTs instanceof Instant i) {
+                ts = i;
+            } else {
+                throw new IllegalStateException("Unsupported timestamp type: " + (rawTs == null ? "null" : rawTs.getClass()));
+            }
             String actual = hmac(canonical(ts, actor, row.get("action").toString(), row.get("target_type").toString(), row.get("target_id") == null ? null : UUID.fromString(row.get("target_id").toString()), row.get("outcome").toString(), UUID.fromString(row.get("correlation_id").toString()), row.get("details_json").toString(), previous));
             if (!Objects.equals(actual, row.get("hash"))) return AuditChainVerification.broken(id);
             previous = actual;
