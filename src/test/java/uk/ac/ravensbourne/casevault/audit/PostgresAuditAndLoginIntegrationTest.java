@@ -13,8 +13,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import uk.ac.ravensbourne.casevault.domain.Organisation;
 import uk.ac.ravensbourne.casevault.domain.Role;
 import uk.ac.ravensbourne.casevault.domain.UserAccount;
@@ -28,51 +29,25 @@ import uk.ac.ravensbourne.casevault.security.UserPrincipal;
  * and user authentication (LOGIN_SUCCESS audit) succeed on real PostgreSQL (PostgreSQL 16)
  * without java.time.Instant JDBC binding errors (CWE-1188, CWE-345).
  */
+@Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest
 @ActiveProfiles("test")
 class PostgresAuditAndLoginIntegrationTest {
 
-    private static PostgreSQLContainer<?> postgres;
-    private static boolean dockerAvailable;
-
-    static {
-        try {
-            dockerAvailable = DockerClientFactory.instance().isDockerAvailable();
-            if (dockerAvailable) {
-                postgres = new PostgreSQLContainer<>("postgres:16.6-alpine")
-                        .withDatabaseName("casevault")
-                        .withUsername("casevault_admin")
-                        .withPassword("adminpass");
-                postgres.start();
-            }
-        } catch (Throwable t) {
-            dockerAvailable = false;
-        }
-    }
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16.6-alpine")
+            .withDatabaseName("casevault")
+            .withUsername("casevault_admin")
+            .withPassword("adminpass");
 
     @DynamicPropertySource
     static void dynamicProperties(DynamicPropertyRegistry registry) {
-        if (dockerAvailable && postgres != null && postgres.isRunning()) {
-            registry.add("spring.datasource.url", postgres::getJdbcUrl);
-            registry.add("spring.datasource.username", postgres::getUsername);
-            registry.add("spring.datasource.password", postgres::getPassword);
-            registry.add("spring.flyway.url", postgres::getJdbcUrl);
-            registry.add("spring.flyway.user", postgres::getUsername);
-            registry.add("spring.flyway.password", postgres::getPassword);
-        }
-    }
-
-    @BeforeEach
-    void checkEnvironment() {
-        Assumptions.assumeTrue(dockerAvailable && postgres != null && postgres.isRunning(),
-                "Docker is unavailable in this environment; skipping PostgreSQL Testcontainers integration test");
-    }
-
-    @AfterAll
-    static void cleanup() {
-        if (postgres != null && postgres.isRunning()) {
-            postgres.stop();
-        }
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.flyway.url", postgres::getJdbcUrl);
+        registry.add("spring.flyway.user", postgres::getUsername);
+        registry.add("spring.flyway.password", postgres::getPassword);
     }
 
     @Autowired

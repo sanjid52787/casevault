@@ -12,8 +12,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import uk.ac.ravensbourne.casevault.domain.*;
 import uk.ac.ravensbourne.casevault.security.UserPrincipal;
 import uk.ac.ravensbourne.casevault.service.CaseWorkflowService;
@@ -30,52 +31,26 @@ import uk.ac.ravensbourne.casevault.service.CaseWorkflowService;
  * 4. Search with wildcard characters (%, _, ')
  * 5. Tenant isolation across two organisations
  */
+@Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
 class PostgresCaseSearchIntegrationTest {
 
-    private static PostgreSQLContainer<?> postgres;
-    private static boolean dockerAvailable;
-
-    static {
-        try {
-            dockerAvailable = DockerClientFactory.instance().isDockerAvailable();
-            if (dockerAvailable) {
-                postgres = new PostgreSQLContainer<>("postgres:16.6-alpine")
-                        .withDatabaseName("casevault")
-                        .withUsername("casevault_admin")
-                        .withPassword("adminpass");
-                postgres.start();
-            }
-        } catch (Throwable t) {
-            dockerAvailable = false;
-        }
-    }
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16.6-alpine")
+            .withDatabaseName("casevault")
+            .withUsername("casevault_admin")
+            .withPassword("adminpass");
 
     @DynamicPropertySource
     static void dynamicProperties(DynamicPropertyRegistry registry) {
-        if (dockerAvailable && postgres != null && postgres.isRunning()) {
-            registry.add("spring.datasource.url", postgres::getJdbcUrl);
-            registry.add("spring.datasource.username", postgres::getUsername);
-            registry.add("spring.datasource.password", postgres::getPassword);
-            registry.add("spring.flyway.url", postgres::getJdbcUrl);
-            registry.add("spring.flyway.user", postgres::getUsername);
-            registry.add("spring.flyway.password", postgres::getPassword);
-        }
-    }
-
-    @BeforeEach
-    void checkEnvironment() {
-        Assumptions.assumeTrue(dockerAvailable && postgres != null && postgres.isRunning(),
-                "Docker is unavailable in this environment; skipping PostgreSQL Testcontainers integration test");
-    }
-
-    @AfterAll
-    static void cleanup() {
-        if (postgres != null && postgres.isRunning()) {
-            postgres.stop();
-        }
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.flyway.url", postgres::getJdbcUrl);
+        registry.add("spring.flyway.user", postgres::getUsername);
+        registry.add("spring.flyway.password", postgres::getPassword);
     }
 
     @Autowired CaseWorkflowService workflow;

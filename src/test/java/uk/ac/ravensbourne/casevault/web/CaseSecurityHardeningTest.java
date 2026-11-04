@@ -138,6 +138,37 @@ class CaseSecurityHardeningTest {
         assertEquals(CaseStatus.NEW, cases.findById(caseRecord.getId()).orElseThrow().getStatus());
     }
 
+    @Test
+    void tCase012UnauthenticatedGetCasesRedirectsToLogin() throws Exception {
+        mvc.perform(get("/cases"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern("**/login"));
+    }
+
+    @Test
+    void tCase013ScopedCaseListPerRole() throws Exception {
+        mvc.perform(get("/cases").with(authentication(auth(client))))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.model().attribute("role", "CLIENT_USER"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Safe case title")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Other tenant case"))))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Create case")));
+
+        mvc.perform(get("/cases").with(authentication(auth(analyst))))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.model().attribute("role", "SECURITY_ANALYST"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Safe case title")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Other tenant case"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Create case"))));
+
+        mvc.perform(get("/cases").with(authentication(auth(manager))))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.model().attribute("role", "CASE_MANAGER"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Safe case title")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Other tenant case")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Create case"))));
+    }
+
     private UserAccount save(Organisation organisation, String email, Role role) {
         return users.save(new UserAccount(UUID.randomUUID(), organisation, email, "hash", role));
     }

@@ -34,7 +34,8 @@ foreach ($name in $names) {
         $bytes = New-Object byte[] 32
         $rng.GetBytes($bytes)
         $secretValue = [Convert]::ToBase64String($bytes)
-        [System.IO.File]::WriteAllText((Resolve-Path .).Path + "\$secretPath", $secretValue, [System.Text.Encoding]::UTF8)
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText((Resolve-Path .).Path + "\$secretPath", $secretValue, $utf8NoBom)
         icacls.exe $secretPath /inheritance:r /grant:r "$($env:USERNAME):(R,W)" | Out-Null
         Write-Host "Created $secretPath" -ForegroundColor Green
     }
@@ -155,5 +156,40 @@ To stop and purge persistent named volumes (for a clean restart):
 
 ```powershell
 docker compose -f docker-compose.yml -f docker-compose.hardened.yml down -v
+```
+
+---
+
+## 8. Troubleshooting Testcontainers on Docker Desktop (Docker Engine 29+)
+
+When running the PostgreSQL integration tests (`PostgresAuditAndLoginIntegrationTest` and `PostgresCaseSearchIntegrationTest`) on Windows with Docker Desktop using Docker Engine 29+, Testcontainers can encounter a named pipe connection failure:
+`NpipeSocketClientProviderStrategy failed with BadRequestException (Status 400)` with an empty response body.
+
+This occurs because Docker Engine 29 raised the minimum supported API version to `1.44`, while older `docker-java` client configurations default to an older API version (such as `1.32`).
+
+### Workaround for Docker Engine 29+
+
+Create or edit a properties file in your user home directory:
+`%USERPROFILE%\.docker-java.properties` (e.g. `C:\Users\<username>\.docker-java.properties`)
+
+With the following single configuration line (**saved in UTF-8 without BOM**):
+
+```properties
+api.version=1.44
+```
+
+In PowerShell, this file can be created without BOM using:
+```powershell
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText("$env:USERPROFILE\.docker-java.properties", "api.version=1.44`n", $utf8NoBom)
+```
+
+To run only the two PostgreSQL integration test classes:
+```powershell
+.\mvnw.cmd test -Dtest=PostgresAuditAndLoginIntegrationTest,PostgresCaseSearchIntegrationTest
+```
+Or on Linux/macOS:
+```bash
+./mvnw test -Dtest=PostgresAuditAndLoginIntegrationTest,PostgresCaseSearchIntegrationTest
 ```
 

@@ -81,7 +81,7 @@ public class CaseController {
         return result;
     }
 
-    @GetMapping
+    @GetMapping @PreAuthorize("isAuthenticated()")
     String list(@AuthenticationPrincipal UserPrincipal principal, @RequestParam(required = false) String q,
                 @RequestParam(required = false) Category category, @RequestParam(required = false) Severity severity,
                 @RequestParam(required = false) CaseStatus status, @RequestParam(required = false) UUID owner,
@@ -92,7 +92,7 @@ public class CaseController {
         rateLimits.checkSearch(principal, request.getRemoteAddr());
         model.addAttribute("cases", workflow.search(principal, q, category, severity, status, owner, from, to, page, size, sort));
         model.addAttribute("query", q == null ? "" : q);
-        model.addAttribute("role", principal == null ? "" : principal.role());
+        model.addAttribute("role", principal.role());
         return "case-list";
     }
 
