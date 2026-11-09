@@ -71,8 +71,6 @@ class PostgresCaseSearchIntegrationTest {
 
     @BeforeEach
     void setupFixtures() {
-        if (!dockerAvailable || postgres == null || !postgres.isRunning()) return;
-
         orgA = orgs.save(new Organisation(UUID.randomUUID(), "PG Org Alpha " + UUID.randomUUID()));
         orgB = orgs.save(new Organisation(UUID.randomUUID(), "PG Org Beta " + UUID.randomUUID()));
 
