@@ -1,3 +1,5 @@
+> **Note:** This audit is a point-in-time snapshot. Some entries (commit state, image names, test counts) have since changed. See docs/ai-declaration.md, docs/runbook-local.md and the CI results for the current state.
+
 # CaseVault Completeness Audit & Assessment Readiness Review
 
 **Document Purpose:** Independent, evidence-backed read-only audit of the **CaseVault** repository against the CYS22301 "Software and Platform Security" assessment specification, module rubric, and security engineering requirements.  
