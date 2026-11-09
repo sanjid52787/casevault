@@ -1,5 +1,8 @@
 # CaseVault
 
+[![Secure delivery pipeline](https://github.com/sanjid52787/casevault/actions/workflows/ci.yml/badge.svg)](https://github.com/sanjid52787/casevault/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/sanjid52787/casevault/actions/workflows/ci.yml/badge.svg?label=CodeQL)](https://github.com/sanjid52787/casevault/security/code-scanning)
+
 CaseVault is a secure, server-rendered case-management and evidence-sharing platform for the fictional Northbridge Cyber Response consultancy.
 
 # project install and run process

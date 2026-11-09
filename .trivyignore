@@ -1,0 +1,6 @@
+# Reason: feature not used (no XsltView or XsltViewResolver in codebase); fix requires Spring Framework 7; review date: 2026-11-09
+CVE-2026-47884
+
+# Reason: feature not used (no SseEmitter, ResponseBodyEmitter, or text/event-stream in codebase); fix requires Spring Framework 7; review date: 2026-11-09
+CVE-2026-47890
+

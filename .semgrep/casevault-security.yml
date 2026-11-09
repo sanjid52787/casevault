@@ -1,0 +1,53 @@
+rules:
+  - id: casevault-thymeleaf-utext
+    languages: [generic]
+    severity: ERROR
+    message: Do not render untrusted content with th:utext; use th:text or an approved sanitiser.
+    paths: {include: ["/src/main/resources/templates/**"]}
+    pattern-regex: 'th:utext\s*='
+  - id: casevault-concatenated-query
+    languages: [java]
+    severity: ERROR
+    message: Do not construct SQL/JPQL by string concatenation.
+    metadata: {cwe: "CWE-89"}
+    patterns:
+      - pattern-either:
+          - pattern: $J.query($A + $B, ...)
+          - pattern: $J.update($A + $B, ...)
+          - pattern: $E.createQuery($A + $B, ...)
+  - id: casevault-runtime-exec
+    languages: [java]
+    severity: ERROR
+    message: Runtime.exec is prohibited; use a reviewed integration boundary.
+    metadata: {cwe: "CWE-78"}
+    pattern: Runtime.getRuntime().exec(...)
+  - id: casevault-weak-digest
+    languages: [java]
+    severity: ERROR
+    message: MD5 and SHA-1 are prohibited for security values.
+    metadata: {cwe: "CWE-327"}
+    pattern-regex: 'MessageDigest\.getInstance\("(MD5|SHA-1)"\)'
+  - id: casevault-insecure-random
+    languages: [java]
+    severity: ERROR
+    message: Use SecureRandom for security-sensitive values.
+    metadata: {cwe: "CWE-330"}
+    pattern: new Random(...)
+  - id: casevault-hard-coded-secret
+    languages: [java]
+    severity: WARNING
+    message: Do not embed passwords, tokens, API keys or secret values in source.
+    metadata: {cwe: "CWE-798"}
+    pattern-regex: '(?i)(password|api[_-]?key|secret|token)\s*=\s*"[^"$]{8,}"'
+  - id: casevault-permissive-cors
+    languages: [java]
+    severity: ERROR
+    message: Wildcard CrossOrigin is prohibited for CaseVault.
+    metadata: {cwe: "CWE-942"}
+    pattern-regex: '@CrossOrigin\s*\(\s*"\*"\s*\)'
+  - id: casevault-csrf-disable
+    languages: [java]
+    severity: ERROR
+    message: CSRF must remain enabled for this session-authenticated application.
+    metadata: {cwe: "CWE-352"}
+    pattern-regex: 'csrf\s*\([^)]*disable\s*\('

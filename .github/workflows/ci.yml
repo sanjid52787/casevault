@@ -1,0 +1,253 @@
+name: Secure delivery pipeline
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+
+# Default token is deliberately read-only. Jobs opt in to narrowly scoped writes below.
+permissions:
+  contents: read
+
+concurrency:
+  group: casevault-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: "21"
+  MAVEN_ARGS: "-B -C"
+
+jobs:
+  build-test:
+    name: Build, test and coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      # actions/checkout v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      # actions/setup-java v4.7.1
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      - name: Verify Maven wrapper and build
+        run: ./mvnw $MAVEN_ARGS verify
+      # actions/upload-artifact v4.6.2
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+          if-no-files-found: error
+          retention-days: 14
+
+  sast:
+    name: SAST and CodeQL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      # actions/checkout v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      # actions/setup-java v4.7.1
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      # github/codeql-action/init v3.28.17
+      - uses: github/codeql-action/init@60168efe1c415ce0f5521ea06d5c2062adbeed1b
+        with:
+          languages: java-kotlin
+          build-mode: manual
+      - name: Compile and fail on High SpotBugs/FindSecBugs findings
+        run: ./mvnw $MAVEN_ARGS -DskipTests compile spotbugs:check
+      - name: Install pinned Semgrep CLI
+        run: python3 -m pip install --disable-pip-version-check semgrep==1.183.0
+      - name: Run CaseVault Semgrep rules
+        run: semgrep scan --config .semgrep --error
+      - name: Build for CodeQL
+        run: ./mvnw $MAVEN_ARGS -DskipTests package
+      # github/codeql-action/analyze v3.28.17
+      - uses: github/codeql-action/analyze@60168efe1c415ce0f5521ea06d5c2062adbeed1b
+
+  sca:
+    name: Dependency and SBOM assurance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      # actions/checkout v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      # actions/setup-java v4.7.1
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      - name: Generate CycloneDX SBOM
+        run: ./mvnw $MAVEN_ARGS -DskipTests package cyclonedx:makeAggregateBom
+      - name: Run Dependency-Check when NVD API key is available
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [ -n "$NVD_API_KEY" ]; then
+            ./mvnw $MAVEN_ARGS -Pdependency-check dependency-check:check
+          elif [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            echo "NVD_API_KEY is required for a release vulnerability scan" >&2
+            exit 1
+          else
+            echo "Dependency-Check skipped: NVD_API_KEY is not exposed to this event (for example, a fork PR)."
+          fi
+      # actions/upload-artifact v4.6.2
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cyclone-sbom
+          path: target/bom.json
+          if-no-files-found: error
+          retention-days: 90
+      # actions/upload-artifact v4.6.2
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: dependency-check-report
+          path: target/dependency-check-report.*
+          if-no-files-found: warn
+          retention-days: 30
+
+  secrets:
+    name: Full-history secret scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      # actions/checkout v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # gitleaks/gitleaks-action v2.3.9
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  container:
+    name: Container build and scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      # actions/checkout v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Lint Dockerfile with pinned Hadolint image
+        run: docker run --rm -i hadolint/hadolint:2.12.0-alpine < Dockerfile
+      - name: Build local image
+        run: docker build --pull --tag casevault:ci .
+      - name: Scan container image with pinned Trivy image
+        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v ${{ github.workspace }}/.trivyignore:/.trivyignore aquasec/trivy:0.56.2@sha256:26245f364b6f5d223003dc344ec1eb5eb8439052bfecb31d79aeba0c74344b3a image --format table --exit-code 1 --ignore-unfixed --ignorefile /.trivyignore --severity CRITICAL,HIGH casevault:ci
+      - name: Scan repository configuration with pinned Trivy image
+        run: docker run --rm -v ${{ github.workspace }}:/work -w /work aquasec/trivy:0.56.2@sha256:26245f364b6f5d223003dc344ec1eb5eb8439052bfecb31d79aeba0c74344b3a config --format table --exit-code 1 --severity CRITICAL,HIGH .
+
+  dast:
+    name: Local-stack OWASP ZAP baseline
+    if: ${{ vars.CASEVAULT_ENABLE_DAST == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      # actions/checkout v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Generate ephemeral local-only Docker secrets and certificate
+        run: |
+          chmod +x deploy/scripts/gen-secrets.sh deploy/scripts/gen-dev-certs.sh scripts/run-dast.sh
+          ./deploy/scripts/gen-secrets.sh
+          ./deploy/scripts/gen-dev-certs.sh
+      - name: Start isolated hardened compose stack
+        run: docker compose -f docker-compose.yml -f docker-compose.hardened.yml up -d --build
+      - name: Wait for local health endpoint
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --insecure https://localhost/actuator/health; then exit 0; fi
+            sleep 5
+          done
+          docker compose -f docker-compose.yml -f docker-compose.hardened.yml logs
+          exit 1
+      - name: Run authorised ZAP baseline
+        run: ./scripts/run-dast.sh
+      # actions/upload-artifact v4.6.2
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: zap-baseline-report
+          path: docs/assurance/results/*/zap/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Stop and remove isolated local stack
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.hardened.yml down -v --remove-orphans
+
+  release:
+    name: Signed release and provenance
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-test, sast, sca, secrets, container]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      # actions/checkout v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      # actions/setup-java v4.7.1
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      - name: Run all Maven gates and create SBOM
+        run: ./mvnw $MAVEN_ARGS verify
+      - name: Build and publish tagged image to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE: ghcr.io/${{ github.repository_owner }}/casevault:${{ github.ref_name }}
+        run: |
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker build --pull --tag "$IMAGE" .
+          docker push "$IMAGE"
+      # sigstore/cosign-installer v3.8.0
+      - uses: sigstore/cosign-installer@c56c2d3e59e4281cc41dea2217323ba5694b171e
+      - name: Create checksums and keyless Sigstore bundles
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/casevault:${{ github.ref_name }}
+        run: |
+          sha256sum target/casevault-0.0.1-SNAPSHOT.jar target/bom.json > checksums.sha256
+          cosign sign --yes "$IMAGE"
+          cosign sign-blob --yes --bundle casevault.jar.sigstore.bundle target/casevault-0.0.1-SNAPSHOT.jar
+          cosign sign-blob --yes --bundle casevault.sbom.sigstore.bundle target/bom.json
+      # actions/attest-build-provenance v2.4.0
+      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be
+        with:
+          subject-path: target/casevault-0.0.1-SNAPSHOT.jar
+      - name: Create GitHub release with verified assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" --generate-notes \
+            target/casevault-0.0.1-SNAPSHOT.jar target/bom.json checksums.sha256 \
+            casevault.jar.sigstore.bundle casevault.sbom.sigstore.bundle

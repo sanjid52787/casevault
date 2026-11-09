@@ -11,3 +11,5 @@ spring:
 casevault:
   audit:
     hmac-key: test-only-audit-hmac-key-not-a-secret
+  retention:
+    enabled: false

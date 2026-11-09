@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import uk.ac.ravensbourne.casevault.security.LoginRateLimiter;
+import uk.ac.ravensbourne.casevault.service.AdminRateLimitService;
 import uk.ac.ravensbourne.casevault.service.CaseRateLimitService;
 import uk.ac.ravensbourne.casevault.service.EvidenceRateLimitService;
 
@@ -18,13 +19,16 @@ public final class TestDataCleaner {
     private final CaseRateLimitService caseRateLimits;
     private final EvidenceRateLimitService evidenceRateLimits;
     private final LoginRateLimiter loginRateLimits;
+    private final AdminRateLimitService adminRateLimits;
 
     public TestDataCleaner(JdbcTemplate jdbc, CaseRateLimitService caseRateLimits,
-                           EvidenceRateLimitService evidenceRateLimits, LoginRateLimiter loginRateLimits) {
+                           EvidenceRateLimitService evidenceRateLimits, LoginRateLimiter loginRateLimits,
+                           AdminRateLimitService adminRateLimits) {
         this.jdbc = jdbc;
         this.caseRateLimits = caseRateLimits;
         this.evidenceRateLimits = evidenceRateLimits;
         this.loginRateLimits = loginRateLimits;
+        this.adminRateLimits = adminRateLimits;
     }
 
     /** Cleans database fixtures and all in-memory limiter state for a cached Spring test context. */
@@ -33,6 +37,7 @@ public final class TestDataCleaner {
         caseRateLimits.reset();
         evidenceRateLimits.reset();
         loginRateLimits.reset();
+        adminRateLimits.reset();
     }
 
     public static void clean(JdbcTemplate jdbc) {

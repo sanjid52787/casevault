@@ -8,4 +8,5 @@ import uk.ac.ravensbourne.casevault.domain.CaseNote;
 public interface CaseNoteRepository extends JpaRepository<CaseNote, UUID> {
     List<CaseNote> findByCaseRecordIdAndClientVisibleTrue(UUID caseId);
     List<CaseNote> findByCaseRecordId(UUID caseId);
+    long deleteByCaseRecordId(UUID caseId);
 }

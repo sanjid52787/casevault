@@ -6,6 +6,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -69,6 +70,27 @@ class LoginRedirectAndCsrfTest {
         login("https://attacker.example/").andExpect(redirectedUrl("/"));
         login("//attacker.example/").andExpect(redirectedUrl("/"));
         login("javascript:alert(1)").andExpect(redirectedUrl("/"));
+    }
+
+    @Test
+    void tRedir002AuthenticatedUserVisitingLoginRedirectsToHome() throws Exception {
+        mvc.perform(get("/login").with(authentication(auth())))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"));
+    }
+
+    @Test
+    void tRedir003AuthenticatedUserRefreshingLogoutPageRedirectsToHome() throws Exception {
+        mvc.perform(get("/login").param("logout", "").with(authentication(auth())))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"));
+    }
+
+    @Test
+    void tRedir004UnauthenticatedUserVisitingLoginRendersLoginForm() throws Exception {
+        mvc.perform(get("/login"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Sign in to the secure case workspace")));
     }
 
     @Test

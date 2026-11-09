@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  No SpotBugs/FindSecBugs findings are suppressed at baseline.
+  Any future Match entry must include a Finding ID, expiry/review date and a security justification.
+-->
+<FindBugsFilter/>

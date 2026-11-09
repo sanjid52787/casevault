@@ -1,0 +1,15 @@
+.git/
+.github/
+.idea/
+.vscode/
+.mvn/repository/
+target/
+uploads/
+secrets/
+.env
+*.pem
+*.key
+*.keyset
+*keyset*.json
+docs/assurance/results/
+**/*.log

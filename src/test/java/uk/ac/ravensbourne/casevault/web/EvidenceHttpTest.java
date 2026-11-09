@@ -1,10 +1,15 @@
 package uk.ac.ravensbourne.casevault.web;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.io.IOException;
@@ -122,6 +127,63 @@ class EvidenceHttpTest {
                         .with(authentication(auth(clientA))).with(csrf()))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(header().exists("Retry-After"));
+    }
+
+    @Test
+    void tFile016FakePngUploadRedirectsWithFlashMessageAndAuditsRejection() throws Exception {
+        int initialDbFiles = evidenceFiles.findByCaseRecordId(caseA.getId()).size();
+        long initialDiskFiles;
+        try (var paths = Files.list(EVIDENCE_ROOT)) {
+            initialDiskFiles = paths.count();
+        }
+
+        MockMultipartFile fakePng = new MockMultipartFile(
+                "file", "fake.png", "image/png", "not really a png - plain text content".getBytes());
+
+        mvc.perform(multipart("/cases/{caseId}/evidence", caseA.getId())
+                        .file(fakePng)
+                        .with(authentication(auth(clientA)))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/cases/" + caseA.getId()))
+                .andExpect(flash().attribute("error",
+                        "This file was not accepted. Only approved evidence types within the size limit are allowed."));
+
+        // No file is stored in database or on disk
+        assertEquals(initialDbFiles, evidenceFiles.findByCaseRecordId(caseA.getId()).size());
+        try (var paths = Files.list(EVIDENCE_ROOT)) {
+            assertEquals(initialDiskFiles, paths.count());
+        }
+
+        // An EVIDENCE_REJECTED audit event exists
+        Integer rejectedCount = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM audit_events WHERE action='EVIDENCE_REJECTED'", Integer.class);
+        assertNotNull(rejectedCount);
+        assertTrue(rejectedCount > 0);
+    }
+
+    @Test
+    void tFile017FakePngUploadWebRouteRedirectsWithFlashMessage() throws Exception {
+        int initialDbFiles = evidenceFiles.findByCaseRecordId(caseA.getId()).size();
+
+        MockMultipartFile fakePng = new MockMultipartFile(
+                "file", "fake.png", "image/png", "not really a png - plain text content".getBytes());
+
+        mvc.perform(multipart("/cases/{caseId}/evidence/upload", caseA.getId())
+                        .file(fakePng)
+                        .with(authentication(auth(clientA)))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/cases/" + caseA.getId()))
+                .andExpect(flash().attribute("error",
+                        "This file was not accepted. Only approved evidence types within the size limit are allowed."));
+
+        assertEquals(initialDbFiles, evidenceFiles.findByCaseRecordId(caseA.getId()).size());
+
+        Integer rejectedCount = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM audit_events WHERE action='EVIDENCE_REJECTED'", Integer.class);
+        assertNotNull(rejectedCount);
+        assertTrue(rejectedCount > 0);
     }
 
     private UserAccount save(Organisation organisation, String email, Role role) {

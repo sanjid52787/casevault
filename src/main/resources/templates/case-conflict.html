@@ -1,1 +1,37 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><title>Update conflict</title></head><body><main><h1>Update conflict</h1><p>The case changed while you were editing it. Reload and try again.</p></main></body></html>
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Update Conflict | CaseVault</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" th:href="@{/}"><span class="brand-mark">✓</span>CaseVault</a>
+    <nav class="topnav">
+        <a th:href="@{/cases}">Cases</a>
+    </nav>
+</header>
+<main class="page">
+    <article class="card" style="max-width: 680px; margin: 20px auto 40px;">
+        <span class="status-badge warn">Optimistic Concurrency Guard</span>
+        <h1 style="margin: 14px 0 10px;">Update conflict</h1>
+        <p class="subtitle">
+            The case changed while you were editing it. Reload and try again.
+        </p>
+
+        <section style="margin: 22px 0; padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(145deg, #fff, #f8fafc);">
+            <p style="margin: 0; color: var(--ink-soft); font-size: 0.9rem; line-height: 1.55;">
+                Another user modified this incident case concurrently. Your submitted changes were rejected to prevent overwriting recent modifications. Please return to the case, reload the newest information, and re-apply your changes.
+            </p>
+        </section>
+
+        <div style="display: flex; gap: 12px; align-items: center; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line);">
+            <a th:href="@{/cases}" class="button">&larr; Return to Cases</a>
+            <a th:href="@{/}" class="button secondary">Dashboard</a>
+        </div>
+    </article>
+</main>
+</body>
+</html>

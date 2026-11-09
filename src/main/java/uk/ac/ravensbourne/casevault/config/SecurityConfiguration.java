@@ -20,7 +20,7 @@ import uk.ac.ravensbourne.casevault.security.*;
  */
 @Configuration @EnableMethodSecurity
 public class SecurityConfiguration {
-    @Bean PasswordEncoder passwordEncoder(){ return new Argon2PasswordEncoder(16, 32, 1, 19456, 3); }
+    @Bean public PasswordEncoder passwordEncoder(){ return new Argon2PasswordEncoder(16, 32, 1, 19456, 3); }
 
     /**
      * Backs Spring Security's concurrent-session control with the JDBC session store,

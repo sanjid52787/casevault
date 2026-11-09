@@ -1,1 +1,132 @@
-<!doctype html><html xmlns:th="http://www.thymeleaf.org"><body><main><h1>Audit events</h1><ul><li th:each="e:${events}" th:text="${e.action}">event</li></ul></main></body></html>
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Audit Events | CaseVault</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" th:href="@{/}"><span class="brand-mark">✓</span>CaseVault</a>
+    <nav class="topnav">
+        <a th:href="@{/admin/audit}">Audit</a>
+        <a th:href="@{/admin/accounts}">Accounts</a>
+        <a th:href="@{/admin/health}">Health</a>
+        <a th:href="@{/password/change}">Password</a>
+        <form class="logout-form" th:action="@{/logout}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button type="submit">Sign out</button>
+        </form>
+    </nav>
+</header>
+
+<main class="page">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">Auditor / System Assurance</p>
+            <h1>Audit Events</h1>
+            <p class="subtitle">Append-only, cryptographically chained record of security-relevant events.
+                Filters are exact-match and always applied server-side.</p>
+        </div>
+        <form th:action="@{/admin/audit/verify}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button type="submit" class="button secondary">Verify Audit Hash Chain</button>
+        </form>
+    </div>
+
+    <!-- Filter form -->
+    <section class="card">
+        <h2>Filter events</h2>
+        <form class="filter-form" th:action="@{/admin/audit}" method="get">
+            <label for="filter-action">Action
+                <input id="filter-action" type="text" name="action" th:value="${selectedAction}"
+                       placeholder="e.g. AUTH_LOGIN, CASE_CREATE">
+            </label>
+            <label for="filter-role">Actor role
+                <select id="filter-role" name="actorRole">
+                    <option value="">All roles</option>
+                    <option value="CLIENT_USER" th:selected="${selectedActorRole == 'CLIENT_USER'}">CLIENT_USER</option>
+                    <option value="SECURITY_ANALYST" th:selected="${selectedActorRole == 'SECURITY_ANALYST'}">SECURITY_ANALYST</option>
+                    <option value="CASE_MANAGER" th:selected="${selectedActorRole == 'CASE_MANAGER'}">CASE_MANAGER</option>
+                    <option value="AUDITOR_ADMIN" th:selected="${selectedActorRole == 'AUDITOR_ADMIN'}">AUDITOR_ADMIN</option>
+                </select>
+            </label>
+            <label for="filter-outcome">Outcome
+                <select id="filter-outcome" name="outcome">
+                    <option value="">All outcomes</option>
+                    <option value="SUCCESS" th:selected="${selectedOutcome == 'SUCCESS'}">SUCCESS</option>
+                    <option value="FAILURE" th:selected="${selectedOutcome == 'FAILURE'}">FAILURE</option>
+                    <option value="DENIED" th:selected="${selectedOutcome == 'DENIED'}">DENIED</option>
+                </select>
+            </label>
+            <div class="filter-actions">
+                <button type="submit" class="button">Apply filter</button>
+                <a th:href="@{/admin/audit}" class="button secondary">Reset</a>
+            </div>
+        </form>
+    </section>
+
+    <!-- Audit events table -->
+    <section class="card">
+        <div th:if="${events == null or #lists.isEmpty(events)}" class="empty">
+            <p>No audit events found matching the criteria.</p>
+        </div>
+        <div th:if="${events != null and not #lists.isEmpty(events)}" class="table-wrap">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Timestamp</th>
+                    <th>Actor role</th>
+                    <th>Action</th>
+                    <th>Target</th>
+                    <th>Outcome</th>
+                    <th>Correlation ID</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="e : ${events}">
+                    <td class="mono muted" th:text="${e.id}">1</td>
+                    <td class="nowrap" th:text="${e.ts.toString().substring(0, 19)}">2026-11-02 12:00:00</td>
+                    <td><span class="badge" th:text="${e.actor_role}">ROLE</span></td>
+                    <td class="cell-primary" th:text="${e.action}">ACTION</td>
+                    <td th:text="${e.target_type}">CASE</td>
+                    <td>
+                        <span th:if="${e.outcome == 'SUCCESS'}" class="status-badge ok" th:text="${e.outcome}">SUCCESS</span>
+                        <span th:if="${e.outcome == 'DENIED'}" class="status-badge warn" th:text="${e.outcome}">DENIED</span>
+                        <span th:if="${e.outcome != 'SUCCESS' and e.outcome != 'DENIED'}" class="status-badge bad" th:text="${e.outcome}">FAILURE</span>
+                    </td>
+                    <td class="mono" th:text="${e.correlation_id}">uuid</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <!--
+            Prev/next pagination preserving active filters. Rendered whenever a page has rows
+            OR the visitor is beyond page 0, so an empty last page is never a dead end.
+            "Next" uses the page-full heuristic (no total count is queried).
+        -->
+        <nav class="pagination" aria-label="Audit events pagination"
+             th:if="${(events != null and not #lists.isEmpty(events)) or currentPage > 0}"
+             th:with="next=@{/admin/audit(page=${currentPage + 1}, action=${selectedAction}, actorRole=${selectedActorRole}, outcome=${selectedOutcome})},
+                          prev=@{/admin/audit(page=${currentPage - 1}, action=${selectedAction}, actorRole=${selectedActorRole}, outcome=${selectedOutcome})}">
+            <span class="pagination-info" th:if="${events != null and not #lists.isEmpty(events)}">
+                Showing <span th:text="${#lists.size(events)}">20</span> events
+                &middot; Page <span th:text="${currentPage + 1}">1</span>
+            </span>
+            <span class="pagination-info" th:if="${events == null or #lists.isEmpty(events)}">
+                No events on this page &middot; Page <span th:text="${currentPage + 1}">1</span>
+            </span>
+            <span class="pagination-controls">
+                <a th:if="${currentPage > 0}" class="button secondary small" th:href="@{${prev}}">&larr; Newer</a>
+                <a th:if="${#lists.size(events) == 20}" class="button secondary small" th:href="@{${next}}">Older &rarr;</a>
+            </span>
+        </nav>
+    </section>
+
+    <p class="footer-note">Each record is linked to its predecessor by an HMAC-SHA256 hash, so tampering,
+        deletion or reordering is detectable. Use <strong>Verify Audit Hash Chain</strong> to check integrity.</p>
+</main>
+</body>
+</html>

@@ -28,3 +28,8 @@ commit-pinned CI and hardened deployment verification are not established by cur
 18. **Add security headers and nonce CSP** — CSP nonce, no-store authenticated pages, and regression tests. Labels: `security`, `web`. Linked requirement: SR-HEADERS (TBD).
 19. **Add global safe error handling and correlation IDs** — No stack traces or sensitive diagnostic disclosure. Labels: `security`, `web`. Linked requirement: SR-ERROR (TBD).
 20. **Add supply-chain and deployment assurance** — SBOM, OWASP Dependency-Check, CI, hardened container/reverse proxy, and evidence. Labels: `ci`, `security`, `operations`. Linked requirement: SR-SUPPLY, SR-DEPLOY (TBD).
+
+## Secure code review follow-up
+
+21. **Return auditable 429 responses for login throttling** — Resolved in the Phase 9 working tree: login denials now return generic HTTP 429 with `Retry-After` and a one-per-window metadata-only audit event. Retain this item as review evidence. Labels: `security`, `authentication`, `rate-limit`. Linked requirement: SR-01, SR-12. Finding: F-SCR-004.
+22. **Add safe audit-log filters for date, actor and outcome** — Extend the auditor-only audit query with bound parameters, pagination and validation for date range, actor identifier and outcome; retain action filtering and add MVC/regression tests. Labels: `security`, `audit`, `observability`. Linked requirement: FR-08, SR-11. Finding: F-SCR-005.

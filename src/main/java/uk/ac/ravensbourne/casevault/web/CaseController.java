@@ -23,7 +23,6 @@ import uk.ac.ravensbourne.casevault.service.CaseManagementService;
 import uk.ac.ravensbourne.casevault.service.CaseRateLimitService;
 import uk.ac.ravensbourne.casevault.service.CaseViewService;
 import uk.ac.ravensbourne.casevault.service.CaseWorkflowService;
-import uk.ac.ravensbourne.casevault.service.ReportApprovalService;
 import uk.ac.ravensbourne.casevault.web.dto.CaseMutationRequests;
 import uk.ac.ravensbourne.casevault.web.dto.CreateCaseRequest;
 
@@ -31,12 +30,12 @@ import uk.ac.ravensbourne.casevault.web.dto.CreateCaseRequest;
 @RequestMapping("/cases")
 public class CaseController {
     private final CaseManagementService management;
-    private final ReportApprovalService reports;
+    private final uk.ac.ravensbourne.casevault.service.ReportApprovalService reports;
     private final CaseWorkflowService workflow;
     private final CaseViewService views;
     private final CaseRateLimitService rateLimits;
 
-    public CaseController(CaseManagementService management, ReportApprovalService reports,
+    public CaseController(CaseManagementService management, uk.ac.ravensbourne.casevault.service.ReportApprovalService reports,
                           CaseWorkflowService workflow, CaseViewService views, CaseRateLimitService rateLimits) {
         this.management = management;
         this.reports = reports;
@@ -82,7 +81,7 @@ public class CaseController {
         return result;
     }
 
-    @GetMapping
+    @GetMapping @PreAuthorize("isAuthenticated()")
     String list(@AuthenticationPrincipal UserPrincipal principal, @RequestParam(required = false) String q,
                 @RequestParam(required = false) Category category, @RequestParam(required = false) Severity severity,
                 @RequestParam(required = false) CaseStatus status, @RequestParam(required = false) UUID owner,
@@ -93,6 +92,7 @@ public class CaseController {
         rateLimits.checkSearch(principal, request.getRemoteAddr());
         model.addAttribute("cases", workflow.search(principal, q, category, severity, status, owner, from, to, page, size, sort));
         model.addAttribute("query", q == null ? "" : q);
+        model.addAttribute("role", principal.role());
         return "case-list";
     }
 
@@ -101,6 +101,15 @@ public class CaseController {
         var detail = views.view(principal, id);
         model.addAttribute("caseRecord", detail.caseRecord());
         model.addAttribute("notes", detail.notes());
+        model.addAttribute("actions", detail.actions());
+        model.addAttribute("evidenceFiles", detail.evidenceFiles());
+        model.addAttribute("reports", detail.reports());
+        model.addAttribute("analysts", detail.analysts());
+        model.addAttribute("nextStatuses", detail.nextStatuses());
+        model.addAttribute("permissions", detail.permissions());
+        model.addAttribute("categories", Category.values());
+        model.addAttribute("severities", Severity.values());
+        model.addAttribute("remediationStatuses", uk.ac.ravensbourne.casevault.domain.RemediationStatus.values());
         return "case-detail";
     }
 
@@ -108,6 +117,13 @@ public class CaseController {
     String assign(@AuthenticationPrincipal UserPrincipal principal, @PathVariable UUID id,
                   @Valid @ModelAttribute CaseMutationRequests.Assign request) {
         workflow.assign(principal, id, request);
+        return "redirect:/cases/" + id;
+    }
+
+    @PostMapping("/{id}/metadata") @PreAuthorize("hasRole('CASE_MANAGER')")
+    String metadata(@AuthenticationPrincipal UserPrincipal principal, @PathVariable UUID id,
+                    @Valid @ModelAttribute CaseMutationRequests.Metadata request) {
+        workflow.metadata(principal, id, request);
         return "redirect:/cases/" + id;
     }
 
@@ -130,6 +146,14 @@ public class CaseController {
                   @Valid @ModelAttribute CaseMutationRequests.Action request) {
         workflow.action(principal, id, request);
         return "redirect:/cases/" + id;
+    }
+
+    @PostMapping("/{caseId}/actions/{actionId}/status")
+    @PreAuthorize("hasAnyRole('SECURITY_ANALYST','CASE_MANAGER')")
+    String actionStatus(@AuthenticationPrincipal UserPrincipal principal, @PathVariable UUID caseId,
+                        @PathVariable UUID actionId, @Valid @ModelAttribute CaseMutationRequests.ActionStatus request) {
+        workflow.actionStatus(principal, caseId, actionId, request);
+        return "redirect:/cases/" + caseId;
     }
 
     @PostMapping("/{caseId}/reports/{reportId}/approve") @PreAuthorize("hasRole('CASE_MANAGER')")

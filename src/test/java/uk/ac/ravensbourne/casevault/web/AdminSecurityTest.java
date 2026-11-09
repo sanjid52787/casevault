@@ -18,4 +18,16 @@ import java.util.*; import org.junit.jupiter.api.*; import org.springframework.b
  mvc.perform(get("/not-a-route").with(authentication(auth(client))))
   .andExpect(status().isNotFound()).andExpect(header().exists("X-Correlation-ID")).andExpect(content().string(org.hamcrest.Matchers.containsString("Request could not be completed"))).andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Exception"))));
 }
+@Test void tAdmin006AuditFilteringByActionRoleAndOutcome() throws Exception {
+ mvc.perform(post("/admin/accounts/{id}/force-password-reset",client.getId()).param("reason","audit-filter-test").with(authentication(auth(admin))).with(csrf())).andExpect(status().is3xxRedirection());
+ mvc.perform(get("/admin/audit").param("action","FORCE_PASSWORD_RESET").with(authentication(auth(admin))))
+  .andExpect(status().isOk())
+  .andExpect(content().string(org.hamcrest.Matchers.containsString("FORCE_PASSWORD_RESET")));
+ mvc.perform(get("/admin/audit").param("actorRole","AUDITOR_ADMIN").param("outcome","SUCCESS").with(authentication(auth(admin))))
+  .andExpect(status().isOk())
+  .andExpect(content().string(org.hamcrest.Matchers.containsString("AUDITOR_ADMIN")));
+ mvc.perform(get("/admin/audit").param("action","NON_EXISTENT_ACTION").with(authentication(auth(admin))))
+  .andExpect(status().isOk())
+  .andExpect(content().string(org.hamcrest.Matchers.containsString("No audit events found")));
+}
 }

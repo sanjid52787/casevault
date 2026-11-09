@@ -1,6 +1,7 @@
 package uk.ac.ravensbourne.casevault.report;
 
 import java.util.UUID;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
@@ -16,6 +17,7 @@ import uk.ac.ravensbourne.casevault.repository.RemediationActionRepository;
 import uk.ac.ravensbourne.casevault.repository.ReportRepository;
 import uk.ac.ravensbourne.casevault.repository.UserAccountRepository;
 import uk.ac.ravensbourne.casevault.security.UserPrincipal;
+import uk.ac.ravensbourne.casevault.security.RequiresCaseAccess;
 import uk.ac.ravensbourne.casevault.service.AccessPolicy;
 import uk.ac.ravensbourne.casevault.service.CaseAccessService;
 import uk.ac.ravensbourne.casevault.service.CaseNotFoundException;
@@ -52,7 +54,7 @@ public class ReportService {
     }
 
     /** Creates a versioned DRAFT. Submission is a separate, auditable workflow action. */
-    @Transactional
+    @Transactional @RequiresCaseAccess
     public ReportRecord generate(UserPrincipal principal, UUID caseId) {
         CaseRecord caseRecord = access.requireView(principal, caseId);
         requireGenerator(principal, caseRecord);
@@ -66,7 +68,7 @@ public class ReportService {
     }
 
     /** Submits a generator's own DRAFT for independent manager approval. */
-    @Transactional
+    @Transactional @RequiresCaseAccess
     public void submit(UserPrincipal principal, UUID caseId, UUID reportId) {
         CaseRecord caseRecord = access.requireView(principal, caseId);
         requireGenerator(principal, caseRecord);
@@ -77,13 +79,24 @@ public class ReportService {
     }
 
     /** Returns only content the caller may download; unauthorised reports are indistinguishable from absent ones. */
-    @Transactional
+    @Transactional @RequiresCaseAccess
     public ReportRecord downloadable(UserPrincipal principal, UUID caseId, UUID reportId) {
         CaseRecord caseRecord = access.requireView(principal, caseId);
         ReportRecord report = reportForCase(caseId, reportId);
         if (!mayDownload(principal, report)) throw new CaseNotFoundException();
         audit.record(principal, AuditEventType.REPORT_DOWNLOADED, "REPORT", reportId, "report-downloaded");
         return report;
+    }
+
+    /** Returns only report metadata/content records the authenticated role may legitimately discover. */
+    @Transactional(readOnly = true) @RequiresCaseAccess
+    public List<ReportRecord> visibleFor(UserPrincipal principal, UUID caseId) {
+        access.requireView(principal, caseId);
+        return reports.findByCaseRecordIdOrderByVersionDesc(caseId).stream()
+                .filter(report -> mayDownload(principal, report)
+                        || (Role.SECURITY_ANALYST.name().equals(principal.role())
+                        && report.getGeneratedBy().getId().equals(principal.id())))
+                .toList();
     }
 
     private void requireGenerator(UserPrincipal principal, CaseRecord caseRecord) {
