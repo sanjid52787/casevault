@@ -13,6 +13,8 @@
 </header>
 <main class="page">
     <p class="eyebrow">Case detail</p>
+    <p class="notice error" th:if="${error != null}" th:text="${error}">This file was not accepted.</p>
+    <p class="notice error" th:if="${error == null and message != null}" th:text="${message}">This file was not accepted.</p>
     <h1 th:text="${caseRecord.title}">Case title</h1>
     <p th:text="${caseRecord.description}">Case description</p>
     <dl class="case-meta">
@@ -123,10 +125,10 @@
 
     <section class="card" th:if="${permissions.canUploadEvidence}">
         <h2>Evidence upload</h2>
-        <p class="subtitle">Upload only approved, synthetic evidence types. Files are validated and encrypted before storage.</p>
+        <p class="subtitle">Upload approved, synthetic evidence types (PDF, TXT, LOG, CSV, PNG, JPG, JSON up to 10 MB). Files are validated and encrypted with Tink AEAD.</p>
         <form th:action="@{/cases/{caseId}/evidence/upload(caseId=${caseRecord.id})}" method="post" enctype="multipart/form-data">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-            <label>Evidence file
+            <label>Evidence file (max 10 MB)
                 <input type="file" name="file" accept=".txt,.log,.csv,.pdf,.png,.jpg,.jpeg,.json" required>
             </label>
             <button type="submit">Upload evidence</button>

@@ -1,1 +1,41 @@
-<!doctype html><html><body><main><h1>Request could not be completed</h1><p>Please try again or contact an administrator with the correlation ID in the response header.</p></main></body></html>
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Request Error | CaseVault</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" th:href="@{/}"><span class="brand-mark">✓</span>CaseVault</a>
+    <nav class="topnav">
+        <a th:href="@{/cases}">Cases</a>
+    </nav>
+</header>
+<main class="page">
+    <article class="card" style="max-width: 720px; margin: 20px auto 40px;">
+        <span class="status-badge bad">Security Boundary</span>
+        <h1 style="margin: 14px 0 10px;">Request could not be completed</h1>
+        <p class="subtitle">
+            The requested operation could not be processed. CaseVault enforces strict validation, object-level authorisation, and transfer boundaries across all endpoints.
+        </p>
+
+        <section style="margin: 22px 0; padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(145deg, #fff, #f8fafc);">
+            <p style="margin: 0 0 10px; color: var(--ink-soft); font-weight: 750; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.04em;">Operational Limits &amp; Guidelines</p>
+            <ul style="margin: 0; padding-left: 20px; color: var(--ink-soft); font-size: 0.88rem; line-height: 1.6;">
+                <li><strong>Payload boundary:</strong> File uploads must be 10 MB or smaller.</li>
+                <li><strong>Approved types:</strong> Evidence files must match permitted formats (.pdf, .txt, .log, .csv, .png, .jpg, .json).</li>
+                <li><strong>Tenant boundary:</strong> Access is limited to authorized cases within your organisation.</li>
+                <li><strong>Session validity:</strong> Inactive sessions automatically expire after 15 minutes.</li>
+            </ul>
+        </section>
+
+        <div style="display: flex; gap: 12px; align-items: center; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line);">
+            <a th:href="@{/cases}" class="button">&larr; Return to Cases</a>
+            <a th:href="@{/}" class="button secondary">Dashboard</a>
+        </div>
+    </article>
+</main>
+</body>
+</html>

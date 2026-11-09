@@ -3,7 +3,10 @@ package uk.ac.ravensbourne.casevault.web;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -18,9 +21,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.HandlerMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.servlet.view.RedirectView;
 import uk.ac.ravensbourne.casevault.security.UserPrincipal;
 import uk.ac.ravensbourne.casevault.service.EvidenceRateLimitExceededException;
 import uk.ac.ravensbourne.casevault.service.EvidenceRateLimitService;
+import uk.ac.ravensbourne.casevault.service.EvidenceRejectedException;
 import uk.ac.ravensbourne.casevault.service.EvidenceService;
 
 /** Serves evidence only as authorised attachments, never from a static resource location. */
@@ -63,5 +70,33 @@ public class EvidenceController {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header(HttpHeaders.RETRY_AFTER, Long.toString(exception.retryAfterSeconds()))
                 .build();
+    }
+
+    @ExceptionHandler(EvidenceRejectedException.class)
+    public RedirectView handleEvidenceRejected(HttpServletRequest request, RedirectAttributes redirectAttributes) {
+        redirectAttributes.addFlashAttribute("error",
+                "This file was not accepted. Only approved evidence types within the size limit are allowed.");
+        redirectAttributes.addFlashAttribute("message",
+                "This file was not accepted. Only approved evidence types within the size limit are allowed.");
+        String caseId = extractCaseId(request);
+        return new RedirectView(caseId.isBlank() ? "/cases" : "/cases/" + caseId, true);
+    }
+
+    private String extractCaseId(HttpServletRequest request) {
+        Object uriVarsObj = request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+        if (uriVarsObj instanceof Map<?, ?> uriVars) {
+            Object id = uriVars.get("caseId");
+            if (id != null) {
+                return id.toString();
+            }
+        }
+        String uri = request.getRequestURI();
+        if (uri != null) {
+            Matcher matcher = Pattern.compile("/cases/([^/]+)").matcher(uri);
+            if (matcher.find()) {
+                return matcher.group(1);
+            }
+        }
+        return "";
     }
 }
