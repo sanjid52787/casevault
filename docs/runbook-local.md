@@ -1,24 +1,146 @@
-# CaseVault Local Docker Deployment Runbook (Windows & PowerShell)
+# CaseVault Local Runbook (Windows & PowerShell)
 
-This runbook guides operators through deploying, provisioning, and operating CaseVault in **production Docker mode** on Windows using PowerShell.
+This runbook provides exact procedures for operating CaseVault locally on Windows using PowerShell, both **without Docker** (development/evaluation mode with synthetic accounts and in-memory database) and **with Docker** (hardened production container topology).
 
 ---
+
+# Part 1: Running Locally Without Docker (Development Mode)
+
+Running CaseVault directly on Windows without Docker uses the `dev` profile with an in-memory PostgreSQL-compatible H2 database, local Tink keyset, and seeded synthetic accounts across all four system roles.
+
+## 1. Prerequisites
+
+* **OS**: Windows 10/11 with PowerShell 5.1 or PowerShell 7+.
+* **Java**: Eclipse Temurin OpenJDK 21 LTS (`java -version`).
+* **Maven**: Built-in Maven Wrapper (`.\mvnw.cmd`).
+
+## 2. Configuration & Property Names
+
+All configuration adheres strictly to `src/main/resources/application.yml` and `application-dev.yml`:
+
+| Configuration Property | Environment Variable | Development Value / Purpose |
+| :--- | :--- | :--- |
+| `spring.profiles.active` | `SPRING_PROFILES_ACTIVE` | `dev` |
+| Maven runtime opts | `MAVEN_OPTS` | `-Dspring-boot.run.useTestClasspath=true` (exposes test-scoped H2 driver) |
+| `spring.datasource.url` | `CASEVAULT_DB_URL` | `jdbc:h2:mem:casevaultdev;MODE=PostgreSQL;DB_CLOSE_DELAY=-1` |
+| `spring.datasource.username` | `CASEVAULT_DB_USERNAME` | `sa` |
+| `spring.datasource.password` | `CASEVAULT_DB_PASSWORD` | `""` (empty string) |
+| `casevault.audit.hmac-key` | `AUDIT_HMAC_KEY` | Process-local 32-byte Base64 key for HMAC-SHA256 audit log chain |
+| `casevault.crypto.tink.keyset-path` | `TINK_KEYSET_PATH` | Path to generated Tink AES-256-GCM keyset (e.g. `target\dev-tink-keyset.json`) |
+| `casevault.evidence.directory` | `CASEVAULT_EVIDENCE_DIRECTORY` | `uploads` (created in working directory, encrypted at rest) |
+| `casevault.evidence.max-bytes` | `CASEVAULT_EVIDENCE_MAX_BYTES` | `10485760` (10 MB maximum upload limit) |
+| `casevault.evidence.max-files-per-case`| `CASEVAULT_EVIDENCE_MAX_FILES_PER_CASE` | `20` files per case |
+
+## 3. Quick Start (Automated Script)
+
+The repository provides an automated startup script `scripts/start-dev.ps1` that sets all environment variables, generates the ephemeral audit key and Tink keyset, and launches the application:
+
+```powershell
+.\scripts\start-dev.ps1
+```
+
+## 4. Manual Exact PowerShell Commands (Step-by-Step)
+
+To configure and launch CaseVault manually from PowerShell without Docker:
+
+```powershell
+# 1. Set development profile and classpath options
+$env:SPRING_PROFILES_ACTIVE = "dev"
+$env:MAVEN_OPTS = "-Dspring-boot.run.useTestClasspath=true"
+
+# 2. Configure in-memory PostgreSQL-mode H2 database
+$env:CASEVAULT_DB_URL = "jdbc:h2:mem:casevaultdev;MODE=PostgreSQL;DB_CLOSE_DELAY=-1"
+$env:CASEVAULT_DB_USERNAME = "sa"
+$env:CASEVAULT_DB_PASSWORD = ""
+
+# 3. Generate random 32-byte Base64 HMAC key for audit logging
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$auditBytes = New-Object byte[] 32
+$rng.GetBytes($auditBytes)
+$rng.Dispose()
+$env:AUDIT_HMAC_KEY = [Convert]::ToBase64String($auditBytes)
+
+# 4. Generate local Tink AES-GCM keyset for evidence encryption
+New-Item -ItemType Directory -Path "target" -Force | Out-Null
+$keysetPath = "target\dev-tink-keyset.json"
+if (-not (Test-Path $keysetPath)) {
+    .\mvnw.cmd -Dexec.mainClass=uk.ac.ravensbourne.casevault.crypto.DevTinkKeysetGenerator "-Dexec.args=$keysetPath" exec:java
+}
+$env:TINK_KEYSET_PATH = (Resolve-Path $keysetPath).Path
+
+# 5. Launch CaseVault
+.\mvnw.cmd spring-boot:run
+```
+
+## 5. Where Synthetic Logins Are Printed
+
+When CaseVault starts under the `dev` profile, `uk.ac.ravensbourne.casevault.config.DevDataSeeder` automatically creates synthetic accounts, writes them to `target/dev-credentials.txt`, and outputs a formatted banner to stdout:
+
+```text
+========================================================================
+CaseVault Development Credentials:
+  CLIENT_USER:      email: client@example.test    password: ClientPass123!@#
+  CLIENT_USER:      email: globex@example.test    password: GlobexPass123!@#
+  SECURITY_ANALYST: email: analyst@example.test   password: AnalystPass123!@#
+  CASE_MANAGER:     email: manager@example.test   password: ManagerPass123!@#
+  AUDITOR_ADMIN:    email: admin@example.test     password: AdminPass123!@#
+========================================================================
+```
+
+* **File location**: `target/dev-credentials.txt`
+* **Log location**: Console stdout during application startup
+
+## 6. URLs Per Role
+
+Access the application in your browser at `http://localhost:8080`:
+
+| Role | Synthetic Login | Primary URLs & Permissions |
+| :--- | :--- | :--- |
+| **Authentication** | *(All roles)* | `http://localhost:8080/login`<br>`http://localhost:8080/logout`<br>`http://localhost:8080/password/change` |
+| **CLIENT_USER** | `client@example.test`<br>`globex@example.test` | `http://localhost:8080/cases` (View cases belonging to own organization only)<br>`http://localhost:8080/cases/new` (Submit new security incident case) |
+| **SECURITY_ANALYST** | `analyst@example.test` | `http://localhost:8080/cases` (Investigation queue; assigned cases only)<br>`http://localhost:8080/cases/{id}` (Add investigation notes, remediation actions, upload evidence) |
+| **CASE_MANAGER** | `manager@example.test` | `http://localhost:8080/cases` (View all cases across consultancy)<br>`http://localhost:8080/cases/{id}` (Assign analysts, transition case status, approve remediation reports) |
+| **AUDITOR_ADMIN** | `admin@example.test` | `http://localhost:8080/admin/audit` (Inspect tamper-evident audit log)<br>`POST http://localhost:8080/admin/audit/verify` (Verify HMAC hash chain integrity)<br>`http://localhost:8080/admin/users` (User management: disable accounts, revoke sessions, reset lockout)<br>`http://localhost:8080/admin/health` (Storage probe and database health) |
+
+## 7. Reset Steps (Development Mode)
+
+Because the development database is stored in-memory (`jdbc:h2:mem:casevaultdev`), database state resets automatically when the process terminates.
+
+To perform a complete clean reset of all local artifacts (evidence uploads, Tink keyset, and cached credentials):
+
+```powershell
+# 1. Stop the application (Ctrl+C in the terminal)
+
+# 2. Clean uploaded evidence files
+if (Test-Path "uploads") {
+    Remove-Item -Recurse -Force "uploads"
+}
+
+# 3. Clean generated dev keys and credentials
+if (Test-Path "target\dev-tink-keyset.json") {
+    Remove-Item -Force "target\dev-tink-keyset.json"
+}
+if (Test-Path "target\dev-credentials.txt") {
+    Remove-Item -Force "target\dev-credentials.txt"
+}
+```
+
+---
+
+# Part 2: Running Locally With Docker (Hardened Production Mode)
+
+This section guides operators through deploying CaseVault in **production Docker mode** (`SPRING_PROFILES_ACTIVE=prod`) using PostgreSQL, Nginx reverse proxy with TLS, and Docker secrets.
 
 ## 1. Prerequisites
 
 * **Operating System**: Windows 10/11 with PowerShell 5.1 or PowerShell 7+.
-* **Docker Desktop**: Running with the Compose v2 plugin enabled.
-* **Java**: Eclipse Temurin OpenJDK 21 LTS (`java -version`).
-* **OpenSSL**: Available in `PATH` (included with Git for Windows at `C:\Program Files\Git\usr\bin\openssl.exe`).
+* **Docker Desktop**: Running with Compose v2.
+* **OpenSSL**: Available in `PATH` (included with Git for Windows).
 * **Port Availability**: Port `443` on `localhost` must be free.
-
----
 
 ## 2. Generate Local Secrets and TLS Certificates
 
-CaseVault enforces strict secret separation. In production Docker mode (`SPRING_PROFILES_ACTIVE: prod`), no secrets or credentials are hardcoded or checked into source control. All secrets are stored under `secrets/`, which is ignored by `.gitignore`.
-
-From the project root in PowerShell:
+CaseVault enforces strict secret separation in `prod` profile:
 
 ```powershell
 # 1. Ensure secrets directory exists
@@ -46,7 +168,7 @@ $rng.Dispose()
 .\scripts\gen-tink-keyset.ps1 -OutputPath "secrets\tink-keyset.json"
 icacls.exe "secrets\tink-keyset.json" /inheritance:r /grant:r "$($env:USERNAME):(R,W)" | Out-Null
 
-# 4. Generate local-only self-signed TLS certificate for Nginx proxy
+# 4. Generate local self-signed TLS certificate for Nginx proxy
 New-Item -ItemType Directory -Path "secrets\tls" -Force | Out-Null
 if (-not (Test-Path "secrets\tls\dev.crt")) {
     & "C:\Program Files\Git\usr\bin\openssl.exe" req -x509 -nodes -days 7 -newkey rsa:2048 `
@@ -58,11 +180,7 @@ if (-not (Test-Path "secrets\tls\dev.crt")) {
 }
 ```
 
----
-
 ## 3. Build and Start the Docker Stack
-
-Build the hardened image and start the complete topology (PostgreSQL, Spring Boot app, Flyway migrator, DB grants enforcer, and Nginx reverse proxy):
 
 ```powershell
 # Build application image using multi-stage Dockerfile
@@ -70,126 +188,27 @@ docker compose -f docker-compose.yml -f docker-compose.hardened.yml build --no-c
 
 # Launch all services in background
 docker compose -f docker-compose.yml -f docker-compose.hardened.yml up -d
-```
 
-Verify service status and health:
-
-```powershell
-# Check running containers (storage-init and db-grants exit 0 after completing setup)
-docker compose -f docker-compose.yml -f docker-compose.hardened.yml ps
-
-# Probe health endpoint through the TLS reverse proxy
+# Verify service health
 curl.exe --insecure --silent https://localhost/actuator/health
-# Expected output: {"status":"UP"}
 ```
-
----
 
 ## 4. Bootstrap Initial AUDITOR_ADMIN Account
 
-In Docker mode (`prod` profile), synthetic users are **not seeded** to eliminate default credential risks (CWE-1188). The database contains schema tables but zero user accounts.
-
-To securely provision the first `AUDITOR_ADMIN`:
+In production Docker mode, synthetic users are **not seeded** to eliminate default credential risks (CWE-1188). To provision the initial administrator:
 
 ```powershell
 .\scripts\bootstrap-admin.ps1
 ```
 
-### What this script does:
-1. **Connectivity Check**: Verifies that PostgreSQL is healthy and accepting queries.
-2. **Strict Guard**: Queries `SELECT COUNT(*) FROM users;`. **If any user already exists, it immediately halts and refuses execution** (exit code 1) to prevent account hijacking or tampering.
-3. **Password Generation/Ingestion**: Reads or generates a strong 32-character password in `secrets/admin_initial_password.txt` with owner-only ACLs (`icacls`).
-4. **Argon2id Hashing**: Uses `Argon2Hasher` via `.\mvnw.cmd` to derive the hash using the application's actual `SecurityConfiguration.passwordEncoder()` bean (m=19456, t=3, p=1). Plaintext passwords are never passed via CLI arguments or printed.
-5. **Safe SQL Insertion**: Provisions organisation `Northbridge Internal` and user `admin@example.test` with `role = 'AUDITOR_ADMIN'` and `force_password_reset = true`.
-6. **Audit Integrity**: Direct SQL does not touch `audit_events`. The HMAC-SHA256 audit chain remains unperturbed.
+Retrieve password from `secrets\admin_initial_password.txt` and log in at `https://localhost/login`.
 
-### Proving Refusal on Initialized Database:
-To test and prove that the bootstrap guard refuses execution once users exist:
+## 5. Teardown (Docker Mode)
 
 ```powershell
-# Run the refusal test script
-.\scripts\test-bootstrap-refusal.ps1
-# Expected output: SUCCESS: bootstrap-admin.ps1 refused to execute and reported SECURITY REFUSAL as expected.
-```
-
----
-
-## 5. Authenticate and Complete Forced Password Reset
-
-1. **Retrieve the Initial Password**:
-   ```powershell
-   Get-Content secrets\admin_initial_password.txt
-   ```
-2. **Access CaseVault Web Interface**:
-   * Open `https://localhost/login` in your browser.
-   * Enter Email: `admin@example.test`.
-   * Enter Password: *(Value from `secrets\admin_initial_password.txt`)*.
-3. **Change Password**:
-   * Navigate to `https://localhost/password/change`.
-   * Submit your current initial password and a new secure password (12+ characters, not common).
-   * Upon change, `force_password_reset` is cleared, other sessions are revoked, and `PASSWORD_CHANGED` is logged into the audit chain.
-
----
-
-## 6. Verify System Health and Audit Hash Chain
-
-As `AUDITOR_ADMIN`, verify system integrity from the web interface:
-
-1. **System Health**:
-   * Visit `https://localhost/admin/health` to confirm database connectivity and storage probe status.
-2. **Audit Verification**:
-   * Visit `https://localhost/admin/audit` to view recorded security events (`LOGIN_SUCCESS`, `PASSWORD_CHANGED`).
-   * Click **Verify chain integrity** (`POST /admin/audit/verify`).
-   * Confirmation message: `Audit chain verification: INTACT (0 broken events)`.
-
----
-
-## 7. Shutdown and Teardown
-
-To stop the Docker stack:
-
-```powershell
+# Stop containers
 docker compose -f docker-compose.yml -f docker-compose.hardened.yml down
-```
 
-To stop and purge persistent named volumes (for a clean restart):
-
-```powershell
+# Purge named volumes (complete state reset)
 docker compose -f docker-compose.yml -f docker-compose.hardened.yml down -v
 ```
-
----
-
-## 8. Troubleshooting Testcontainers on Docker Desktop (Docker Engine 29+)
-
-When running the PostgreSQL integration tests (`PostgresAuditAndLoginIntegrationTest` and `PostgresCaseSearchIntegrationTest`) on Windows with Docker Desktop using Docker Engine 29+, Testcontainers can encounter a named pipe connection failure:
-`NpipeSocketClientProviderStrategy failed with BadRequestException (Status 400)` with an empty response body.
-
-This occurs because Docker Engine 29 raised the minimum supported API version to `1.44`, while older `docker-java` client configurations default to an older API version (such as `1.32`).
-
-### Workaround for Docker Engine 29+
-
-Create or edit a properties file in your user home directory:
-`%USERPROFILE%\.docker-java.properties` (e.g. `C:\Users\<username>\.docker-java.properties`)
-
-With the following single configuration line (**saved in UTF-8 without BOM**):
-
-```properties
-api.version=1.44
-```
-
-In PowerShell, this file can be created without BOM using:
-```powershell
-$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-[System.IO.File]::WriteAllText("$env:USERPROFILE\.docker-java.properties", "api.version=1.44`n", $utf8NoBom)
-```
-
-To run only the two PostgreSQL integration test classes:
-```powershell
-.\mvnw.cmd test -Dtest=PostgresAuditAndLoginIntegrationTest,PostgresCaseSearchIntegrationTest
-```
-Or on Linux/macOS:
-```bash
-./mvnw test -Dtest=PostgresAuditAndLoginIntegrationTest,PostgresCaseSearchIntegrationTest
-```
-
