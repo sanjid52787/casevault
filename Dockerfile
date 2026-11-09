@@ -10,6 +10,8 @@ RUN ./mvnw -B -DskipTests package \
  && java -Djarmode=tools -jar target/casevault-0.0.1-SNAPSHOT.jar extract --layers --destination /layers
 
 FROM eclipse-temurin:21-jre-jammy AS runtime
+# Base image is pinned, packages come from distribution repository, and Trivy scans the final image.
+# hadolint ignore=DL3008
 RUN apt-get update \
  && apt-get install --no-install-recommends -y curl \
  && rm -rf /var/lib/apt/lists/* \
