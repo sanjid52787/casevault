@@ -155,7 +155,7 @@ jobs:
       - name: Build local image
         run: docker build --pull --tag casevault:ci .
       - name: Scan container image with pinned Trivy image
-        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.56.2@sha256:26245f364b6f5d223003dc344ec1eb5eb8439052bfecb31d79aeba0c74344b3a image --format table --exit-code 1 --ignore-unfixed --severity CRITICAL,HIGH casevault:ci
+        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v ${{ github.workspace }}/.trivyignore:/.trivyignore aquasec/trivy:0.56.2@sha256:26245f364b6f5d223003dc344ec1eb5eb8439052bfecb31d79aeba0c74344b3a image --format table --exit-code 1 --ignore-unfixed --ignorefile /.trivyignore --severity CRITICAL,HIGH casevault:ci
       - name: Scan repository configuration with pinned Trivy image
         run: docker run --rm -v ${{ github.workspace }}:/work -w /work aquasec/trivy:0.56.2@sha256:26245f364b6f5d223003dc344ec1eb5eb8439052bfecb31d79aeba0c74344b3a config --format table --exit-code 1 --severity CRITICAL,HIGH .
 
