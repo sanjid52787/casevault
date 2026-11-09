@@ -2,7 +2,7 @@
 
 ## Declaration
 
-I declare that AI tools (Antigravity) were used during the design, implementation, and assurance of this project, as documented in the table below. I take full personal and academic responsibility for every submitted component and will explain and defend every design decision, code change, and security control during the oral viva examination. The final column ("What I verified/changed") reflects my personal review status; all entries marked "NOT YET PERSONALLY REVIEWED - student to complete." indicate items that I have not yet reviewed line by line. All third-party libraries and dependencies are explicitly declared in the repository build manifests (`pom.xml`) and CycloneDX SBOM (`target/bom.json`), and no AI-generated text was submitted as my own original report text.
+I declare that AI tools (Codex, Antigravity, and ZCode/GLM) were used during the design, implementation, and assurance of this project, as documented in the table below. I am responsible for every component of the submitted system and will explain and defend every design decision, code change, and security control during the oral viva examination. The final column ("What I verified/changed") reflects my personal review status; all entries marked "NOT YET PERSONALLY REVIEWED - student to complete." indicate items that have not yet been reviewed line by line by me. Third-party libraries are listed in the dependency manifests (`pom.xml`) and CycloneDX SBOM (`target/bom.json`); no AI-generated text was submitted as my own original report text.
 
 | Date | Phase | Tool | What was generated | What I verified/changed |
 |---|---|---|---|---|
@@ -51,20 +51,30 @@ I declare that AI tools (Antigravity) were used during the design, implementatio
 | 2026-11-05 | Error Page Hardening & UI Design (HTTP 413 & Gateway Errors) | Antigravity | Designed branded, responsive standalone error pages in deploy/error_pages/ (error-413.html, error-50x.html, error-404.html) to eliminate raw Nginx error exposure and server fingerprinting when uploads exceed max body size. Configured Nginx error_page mappings and Docker Compose volume mounts. Modernised Spring Boot error views (error.html, case-conflict.html) with CaseVault design system and added explicit upload limit guidance in case-detail.html. | Tool-reported: Verified via live curl multipart upload testing against running proxy container returning styled HTTP 413, and automated test suite run. |
 | 2026-11-09 | CI action pin fix | Codex | Replaced non-existent gitleaks-action SHA with verified v2.3.9 commit in .github/workflows/ci.yml. | NOT YET PERSONALLY REVIEWED - student to complete. |
 | 2026-11-09 | Audit timestamp and runbook | Codex | Millisecond-truncated timestamps in PersistentAuditService and updated docs/runbook-local.md. | NOT YET PERSONALLY REVIEWED - student to complete. |
+| 2026-11-09 | Dependency upgrade | Codex | Upgraded Spring Boot to 3.5.16, Tomcat to 10.1.59, Jackson BOM to 2.21.7, PostgreSQL JDBC to 42.7.12, BouncyCastle to 1.85, Tika core to 3.2.2, OWASP HTML Sanitizer to 20260101.1, Spring Security to 6.5.11, Spring Session to 3.5.7, and Thymeleaf extras to 3.1.5.RELEASE in pom.xml to resolve 60 CVEs. | NOT YET PERSONALLY REVIEWED - student to complete. |
+| 2026-11-09 | Trivy image scan and ignorefile | Codex | Replaced composite trivy-action in .github/workflows/ci.yml with direct execution of pinned aquasec/trivy:0.56.2@sha256:26245f364b6f5d223003dc344ec1eb5eb8439052bfecb31d79aeba0c74344b3a, created root .trivyignore suppressing CVE-2026-47884 and CVE-2026-47890 (unused XsltView and SseEmitter features), mounted ignorefile into container scan step, and documented rationale in docs/assurance/accepted-risks.md. | NOT YET PERSONALLY REVIEWED - student to complete. |
+| 2026-11-09 | Dockerfile digest pin and apt upgrade | Codex | Pinned runtime base image in Dockerfile to eclipse-temurin:21-jre-jammy@sha256:1eac8b8fee11ca7d6725a48bc5d41992ed1561504ebae25490d2d062847e8269, added apt and libapt-pkg6.0 to runtime apt-get install instruction to upgrade to 2.4.15ubuntu0.1, and documented the accepted Hadolint DL3008 trade-off. | NOT YET PERSONALLY REVIEWED - student to complete. |
+| 2026-11-09 | Executable permissions | Codex | Marked mvnw and repository shell scripts in deploy/scripts/ and scripts/ as executable (mode 100755) in the git index for reliable execution on Linux CI runners and containers. | NOT YET PERSONALLY REVIEWED - student to complete. |
 
 ## Third-party and generated material
 
-- **Spring Boot**: `org.springframework.boot` version `3.4.2` (parent POM and starters: web, data-jpa, validation, actuator, test)
-- **Spring Security**: `org.springframework.security` version `6.4.2` (managed via `spring-boot-starter-security` and `spring-security-test`)
+- **Spring Boot**: `org.springframework.boot` version `3.5.16` (parent POM and starters: web, thymeleaf, security, data-jpa, validation, actuator, test)
+- **Spring Security**: `org.springframework.security` version `6.5.11` (managed via `spring-boot-starter-security` and `spring-security-test`)
+- **Spring Session**: `org.springframework.session:spring-session-jdbc` version `3.5.7` (JDBC-backed session clustering and revocation)
+- **Apache Tomcat (Embed)**: `org.apache.tomcat.embed:tomcat-embed-core`, `tomcat-embed-el`, `tomcat-embed-websocket` version `10.1.59` (embedded servlet container managed via `<tomcat.version>`)
+- **Jackson**: `com.fasterxml.jackson:jackson-bom` version `2.21.7` (JSON binding and serialization managed via `<jackson-bom.version>`)
+- **PostgreSQL JDBC**: `org.postgresql:postgresql` version `42.7.12` (relational database driver)
 - **Tink**: `com.google.crypto.tink:tink` version `1.16.0` (AEAD envelope encryption for evidence files at rest)
-- **Argon2 library**: `org.bouncycastle:bcprov-jdk18on` version `1.80` (cryptographic provider backing Spring Security's `Argon2PasswordEncoder`)
-- **Bucket4j**: `com.bucket4j:bucket4j-core` version `8.10.1` (token-bucket rate limiting for authentication and admin endpoints)
+- **Argon2 library**: `org.bouncycastle:bcprov-jdk18on` version `1.85` (cryptographic provider backing Spring Security's `Argon2PasswordEncoder`)
+- **Apache Tika**: `org.apache.tika:tika-core` version `3.2.2` (MIME/content-type inspection via magic bytes)
+- **OWASP Java HTML Sanitizer**: `com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer` version `20260101.1` (rich text sanitization)
+- **Bucket4j**: `com.bucket4j:bucket4j-core` version `8.10.1` (token-bucket rate limiting for authentication, search, report, and admin endpoints)
 - **Flyway**: `org.flywaydb:flyway-core` and `org.flywaydb:flyway-database-postgresql` version `10.20.1` (forward-only database schema migrations)
 - **Testcontainers**: `org.testcontainers:junit-jupiter` and `org.testcontainers:postgresql` version `1.20.5` (isolated PostgreSQL 16 container integration tests)
 - **ArchUnit**: `com.tngtech.archunit:archunit-junit5` version `1.3.0` (architectural boundary and central access policy enforcement)
 - **SpotBugs/FindSecBugs**: `com.github.spotbugs:spotbugs-maven-plugin` version `4.8.6.0` with `com.h3xstream.findsecbugs:findsecbugs-plugin` version `1.13.0` (static analysis for security bugs)
 - **JaCoCo**: `org.jacoco:jacoco-maven-plugin` version `0.8.12` (coverage reporting and verification threshold enforcement)
-- **Thymeleaf**: `org.springframework.boot:spring-boot-starter-thymeleaf` (Spring Boot `3.4.2`) and `org.thymeleaf.extras:thymeleaf-extras-springsecurity6` version `3.1.3.RELEASE` (server-side templates and security dialect)
+- **Thymeleaf**: `org.springframework.boot:spring-boot-starter-thymeleaf` (Spring Boot `3.5.16`) and `org.thymeleaf.extras:thymeleaf-extras-springsecurity6` version `3.1.5.RELEASE` (server-side templates and security dialect)
 - **GitHub Actions (used in .github/workflows/ci.yml)**:
   - `actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683` (# v4.2.2)
   - `actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00` (# v4.7.1)
@@ -72,6 +82,9 @@ I declare that AI tools (Antigravity) were used during the design, implementatio
   - `github/codeql-action/init@60168efe1c415ce0f5521ea06d5c2062adbeed1b` (# v3.28.17)
   - `github/codeql-action/analyze@60168efe1c415ce0f5521ea06d5c2062adbeed1b` (# v3.28.17)
   - `gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7` (# v2.3.9)
-  - `aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2` (# v0.28.0)
   - `sigstore/cosign-installer@c56c2d3e59e4281cc41dea2217323ba5694b171e` (# v3.8.0)
   - `actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be` (# v2.4.0)
+- **Pinned Container Images (used in .github/workflows/ci.yml & Dockerfile)**:
+  - `hadolint/hadolint:2.12.0-alpine` (Dockerfile linting in CI)
+  - `aquasec/trivy:0.56.2@sha256:26245f364b6f5d223003dc344ec1eb5eb8439052bfecb31d79aeba0c74344b3a` (container image and repo config vulnerability scanning in CI)
+  - `eclipse-temurin:21-jre-jammy@sha256:1eac8b8fee11ca7d6725a48bc5d41992ed1561504ebae25490d2d062847e8269` (runtime base image in Dockerfile)
