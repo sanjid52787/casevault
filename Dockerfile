@@ -9,11 +9,11 @@ COPY src/ src/
 RUN ./mvnw -B -DskipTests package \
  && java -Djarmode=tools -jar target/casevault-0.0.1-SNAPSHOT.jar extract --layers --destination /layers
 
-FROM eclipse-temurin:21-jre-jammy AS runtime
+FROM eclipse-temurin:21-jre-jammy@sha256:1eac8b8fee11ca7d6725a48bc5d41992ed1561504ebae25490d2d062847e8269 AS runtime
 # Base image is pinned, packages come from distribution repository, and Trivy scans the final image.
 # hadolint ignore=DL3008
 RUN apt-get update \
- && apt-get install --no-install-recommends -y curl \
+ && apt-get install --no-install-recommends -y curl apt libapt-pkg6.0 \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --gid 10001 casevault \
  && useradd --uid 10001 --gid 10001 --home-dir /opt/casevault --shell /usr/sbin/nologin casevault \
